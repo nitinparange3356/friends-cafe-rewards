@@ -13,7 +13,19 @@ export default {
       },
     },
     extend: {
+      fontFamily: {
+        sans: ["DM Sans", "sans-serif"],
+        display: ["Playfair Display", "serif"],
+      },
       colors: {
+        cafe: {
+          brown: "hsl(var(--cafe-brown))",
+          cream: "hsl(var(--cafe-cream))",
+          warm: "hsl(var(--cafe-warm))",
+          green: "hsl(var(--cafe-green))",
+          red: "hsl(var(--cafe-red))",
+          gold: "hsl(var(--cafe-gold))",
+        },
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
