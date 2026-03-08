@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Check, X, LogOut, Plus, Edit2, Trash2, Coffee, Users, BarChart3, Package, TrendingUp, IndianRupee, Award, Tag, FolderPlus, Percent } from "lucide-react";
 import { toast } from "sonner";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
@@ -57,10 +57,12 @@ const AdminDashboard = () => {
   const [selectedUserId, setSelectedUserId] = useState("");
   const [pointsAdjust, setPointsAdjust] = useState("");
 
+  const [usersVersion, setUsersVersion] = useState(0);
   const allUsers = useMemo(() => {
     const saved = localStorage.getItem("friends-cafe-users");
     return saved ? JSON.parse(saved) : [];
-  }, [orders]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orders, usersVersion]);
 
   // Persist
   useEffect(() => { localStorage.setItem("friends-cafe-menu", JSON.stringify(menu)); }, [menu]);
@@ -210,6 +212,7 @@ const AdminDashboard = () => {
       }
     }
     toast.success(`Points adjusted by ${adj > 0 ? "+" : ""}${adj}`);
+    setUsersVersion(v => v + 1);
     setPointsDialogOpen(false);
     setPointsAdjust("");
   };
@@ -452,7 +455,10 @@ const AdminDashboard = () => {
       {/* Menu Item Dialog */}
       <Dialog open={menuDialogOpen} onOpenChange={setMenuDialogOpen}>
         <DialogContent className="max-w-sm mx-3 max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle className="text-base">{editingItem ? "Edit Item" : "Add Item"}</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle className="text-base">{editingItem ? "Edit Item" : "Add Item"}</DialogTitle>
+            <DialogDescription className="text-xs">Fill in the details below.</DialogDescription>
+          </DialogHeader>
           <div className="space-y-3">
             <ImageUpload value={form.image} onChange={url => setForm(f => ({ ...f, image: url }))} />
             <Input placeholder="Name" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
@@ -488,7 +494,10 @@ const AdminDashboard = () => {
       {/* Category Dialog */}
       <Dialog open={catDialogOpen} onOpenChange={setCatDialogOpen}>
         <DialogContent className="max-w-xs mx-3">
-          <DialogHeader><DialogTitle className="text-base">{editingCat ? "Rename Category" : "Add Category"}</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle className="text-base">{editingCat ? "Rename Category" : "Add Category"}</DialogTitle>
+            <DialogDescription className="text-xs">Enter the category name.</DialogDescription>
+          </DialogHeader>
           <div className="space-y-3">
             <Input placeholder="Category name" value={newCatName} onChange={e => setNewCatName(e.target.value)} onKeyDown={e => e.key === "Enter" && addCategory()} />
             <Button onClick={addCategory} className="w-full" size="sm">{editingCat ? "Rename" : "Add"}</Button>
@@ -499,7 +508,10 @@ const AdminDashboard = () => {
       {/* Offer Dialog */}
       <Dialog open={offerDialogOpen} onOpenChange={setOfferDialogOpen}>
         <DialogContent className="max-w-sm mx-3 max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle className="text-base">{editingOffer ? "Edit Offer" : "Create Offer"}</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle className="text-base">{editingOffer ? "Edit Offer" : "Create Offer"}</DialogTitle>
+            <DialogDescription className="text-xs">Configure the promotional offer.</DialogDescription>
+          </DialogHeader>
           <div className="space-y-3">
             <ImageUpload value={offerForm.image} onChange={url => setOfferForm(f => ({ ...f, image: url }))} />
             <Input placeholder="Title" value={offerForm.title} onChange={e => setOfferForm(f => ({ ...f, title: e.target.value }))} />
@@ -521,9 +533,11 @@ const AdminDashboard = () => {
       {/* Points Dialog */}
       <Dialog open={pointsDialogOpen} onOpenChange={setPointsDialogOpen}>
         <DialogContent className="max-w-xs mx-3">
-          <DialogHeader><DialogTitle className="text-base">Adjust Points</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle className="text-base">Adjust Points</DialogTitle>
+            <DialogDescription className="text-xs">Enter positive to add or negative to deduct.</DialogDescription>
+          </DialogHeader>
           <div className="space-y-3">
-            <p className="text-xs text-muted-foreground">Enter positive to add or negative to deduct.</p>
             <Input type="number" placeholder="e.g. 50 or -20" value={pointsAdjust} onChange={e => setPointsAdjust(e.target.value)} />
             <Button onClick={adjustPoints} className="w-full" size="sm">Apply</Button>
           </div>
