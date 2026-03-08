@@ -1,5 +1,18 @@
 import { MenuItem } from "@/types";
 
+export const defaultCategories = ["Coffee", "Burgers", "Snacks", "Combos", "Desserts", "Drinks"];
+
+export const getCategories = (): string[] => {
+  const saved = localStorage.getItem("friends-cafe-categories");
+  return saved ? JSON.parse(saved) : defaultCategories;
+};
+
+export const saveCategories = (cats: string[]) => {
+  localStorage.setItem("friends-cafe-categories", JSON.stringify(cats));
+};
+
+export const categories = defaultCategories;
+
 export const menuItems: MenuItem[] = [
   // Coffee
   { id: "c1", name: "Cappuccino", description: "Rich espresso with steamed milk foam and a hint of cocoa", price: 149, actual_price: 199, offer: 25, category: "Coffee", veg_type: "veg", image: "https://images.unsplash.com/photo-1572442388796-11668a67e53d?w=400&h=300&fit=crop", available: true },
@@ -25,5 +38,3 @@ export const menuItems: MenuItem[] = [
   { id: "dr2", name: "Mango Smoothie", description: "Thick and creamy mango smoothie blended with yogurt", price: 149, actual_price: 189, offer: 21, category: "Drinks", veg_type: "veg", image: "https://images.unsplash.com/photo-1546173159-315724a31696?w=400&h=300&fit=crop", available: true },
   { id: "dr3", name: "Iced Tea", description: "Chilled peach iced tea with a hint of lemon", price: 99, actual_price: 129, offer: 23, category: "Drinks", veg_type: "veg", image: "https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=400&h=300&fit=crop", available: true },
 ];
-
-export const categories = ["Coffee", "Burgers", "Snacks", "Combos", "Desserts", "Drinks"] as const;
