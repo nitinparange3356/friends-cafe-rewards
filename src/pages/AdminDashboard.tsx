@@ -57,10 +57,12 @@ const AdminDashboard = () => {
   const [selectedUserId, setSelectedUserId] = useState("");
   const [pointsAdjust, setPointsAdjust] = useState("");
 
+  const [usersVersion, setUsersVersion] = useState(0);
   const allUsers = useMemo(() => {
     const saved = localStorage.getItem("friends-cafe-users");
     return saved ? JSON.parse(saved) : [];
-  }, [orders]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orders, usersVersion]);
 
   // Persist
   useEffect(() => { localStorage.setItem("friends-cafe-menu", JSON.stringify(menu)); }, [menu]);
