@@ -54,6 +54,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     localStorage.setItem("friends-cafe-users", JSON.stringify(users));
   }, [users]);
 
+  // Poll localStorage every 5s to sync orders & user data across tabs/views
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const savedOrders = localStorage.getItem("friends-cafe-orders");
+      if (savedOrders) {
+        const parsed = JSON.parse(savedOrders);
+        setOrders(prev => JSON.stringify(prev) !== savedOrders ? parsed : prev);
+      }
+      const savedUsers = localStorage.getItem("friends-cafe-users");
+      if (savedUsers) {
+        const parsedUsers = JSON.parse(savedUsers);
+        setUsers(prev => JSON.stringify(prev) !== savedUsers ? parsedUsers : prev);
+      }
+      // Sync current user's points
+      if (user) {
+        const savedUser = localStorage.getItem("friends-cafe-user");
+        if (savedUser) {
+          const parsedUser = JSON.parse(savedUser);
+          setUser(prev => prev && JSON.stringify(prev) !== savedUser ? parsedUser : prev);
+        }
+      }
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [user]);
+
   const signup = (name: string, email: string, password: string) => {
     const existing = users.find(u => u.email === email);
     if (existing) { toast.error("Email already registered"); return false; }
