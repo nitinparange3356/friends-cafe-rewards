@@ -212,6 +212,7 @@ const AdminDashboard = () => {
       }
     }
     toast.success(`Points adjusted by ${adj > 0 ? "+" : ""}${adj}`);
+    setUsersVersion(v => v + 1);
     setPointsDialogOpen(false);
     setPointsAdjust("");
   };
