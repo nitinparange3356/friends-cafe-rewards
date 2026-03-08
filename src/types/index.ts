@@ -1,6 +1,7 @@
 export type VegType = "veg" | "non-veg" | "egg";
 
-export type MenuCategory = "Coffee" | "Burgers" | "Snacks" | "Combos" | "Desserts" | "Drinks";
+// Categories are now dynamic strings managed by admin
+export type MenuCategory = string;
 
 export interface MenuItem {
   id: string;
@@ -45,4 +46,15 @@ export interface User {
   email: string;
   reward_points: number;
   created_at: string;
+}
+
+export interface Offer {
+  id: string;
+  title: string;
+  description: string;
+  discount_percent: number;
+  code: string;
+  valid_until: string;
+  image: string;
+  active: boolean;
 }
