@@ -49,6 +49,15 @@ const Navbar = () => {
         </div>
 
         <div className="flex items-center gap-1">
+          {user ? (
+            <Link to="/dashboard" className="p-2 text-primary-foreground hover:bg-primary-foreground/10 rounded-lg">
+              <User className="h-5 w-5" />
+            </Link>
+          ) : (
+            <Link to="/login" className="hidden md:block">
+              <span className="bg-secondary text-secondary-foreground text-sm font-bold px-3 py-1.5 rounded-md">Login</span>
+            </Link>
+          )}
           <Link to="/cart" className="relative p-2 text-primary-foreground hover:bg-primary-foreground/10 rounded-lg">
             <ShoppingCart className="h-5 w-5" />
             {totalItems > 0 && (
@@ -57,16 +66,6 @@ const Navbar = () => {
               </span>
             )}
           </Link>
-
-          {user ? (
-            <Link to="/dashboard" className="hidden md:flex p-2 text-primary-foreground hover:bg-primary-foreground/10 rounded-lg">
-              <User className="h-5 w-5" />
-            </Link>
-          ) : (
-            <Link to="/login" className="hidden md:block">
-              <span className="bg-secondary text-secondary-foreground text-sm font-bold px-3 py-1.5 rounded-md">Login</span>
-            </Link>
-          )}
         </div>
       </div>
 
