@@ -538,7 +538,6 @@ const AdminDashboard = () => {
             <DialogDescription className="text-xs">Enter positive to add or negative to deduct.</DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
-            <p className="text-xs text-muted-foreground">Enter positive to add or negative to deduct.</p>
             <Input type="number" placeholder="e.g. 50 or -20" value={pointsAdjust} onChange={e => setPointsAdjust(e.target.value)} />
             <Button onClick={adjustPoints} className="w-full" size="sm">Apply</Button>
           </div>
