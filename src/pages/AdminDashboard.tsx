@@ -530,7 +530,10 @@ const AdminDashboard = () => {
       {/* Points Dialog */}
       <Dialog open={pointsDialogOpen} onOpenChange={setPointsDialogOpen}>
         <DialogContent className="max-w-xs mx-3">
-          <DialogHeader><DialogTitle className="text-base">Adjust Points</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle className="text-base">Adjust Points</DialogTitle>
+            <DialogDescription className="text-xs">Enter positive to add or negative to deduct.</DialogDescription>
+          </DialogHeader>
           <div className="space-y-3">
             <p className="text-xs text-muted-foreground">Enter positive to add or negative to deduct.</p>
             <Input type="number" placeholder="e.g. 50 or -20" value={pointsAdjust} onChange={e => setPointsAdjust(e.target.value)} />
