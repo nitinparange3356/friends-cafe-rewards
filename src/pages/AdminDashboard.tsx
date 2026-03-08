@@ -491,7 +491,10 @@ const AdminDashboard = () => {
       {/* Category Dialog */}
       <Dialog open={catDialogOpen} onOpenChange={setCatDialogOpen}>
         <DialogContent className="max-w-xs mx-3">
-          <DialogHeader><DialogTitle className="text-base">{editingCat ? "Rename Category" : "Add Category"}</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle className="text-base">{editingCat ? "Rename Category" : "Add Category"}</DialogTitle>
+            <DialogDescription className="text-xs">Enter the category name.</DialogDescription>
+          </DialogHeader>
           <div className="space-y-3">
             <Input placeholder="Category name" value={newCatName} onChange={e => setNewCatName(e.target.value)} onKeyDown={e => e.key === "Enter" && addCategory()} />
             <Button onClick={addCategory} className="w-full" size="sm">{editingCat ? "Rename" : "Add"}</Button>
