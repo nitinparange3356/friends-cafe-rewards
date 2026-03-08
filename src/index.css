@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Speedee:wght@400;700&family=Inter:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,81 +6,79 @@
 
 @layer base {
   :root {
-    --background: 30 25% 97%;
-    --foreground: 20 20% 15%;
+    --background: 40 33% 96%;
+    --foreground: 0 0% 13%;
 
     --card: 0 0% 100%;
-    --card-foreground: 20 20% 15%;
+    --card-foreground: 0 0% 13%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 20 20% 15%;
+    --popover-foreground: 0 0% 13%;
 
-    --primary: 25 80% 48%;
+    --primary: 0 80% 45%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 30 30% 92%;
-    --secondary-foreground: 20 20% 15%;
+    --secondary: 45 100% 51%;
+    --secondary-foreground: 0 0% 13%;
 
-    --muted: 30 15% 93%;
-    --muted-foreground: 20 10% 50%;
+    --muted: 40 20% 93%;
+    --muted-foreground: 0 0% 45%;
 
-    --accent: 145 40% 42%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 45 100% 51%;
+    --accent-foreground: 0 0% 13%;
 
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 30 15% 88%;
-    --input: 30 15% 88%;
-    --ring: 25 80% 48%;
+    --border: 40 15% 88%;
+    --input: 40 15% 88%;
+    --ring: 0 80% 45%;
 
-    --radius: 0.75rem;
+    --radius: 0.5rem;
 
-    --cafe-brown: 20 30% 25%;
-    --cafe-cream: 35 40% 95%;
-    --cafe-warm: 25 80% 48%;
-    --cafe-green: 145 40% 42%;
-    --cafe-red: 0 72% 51%;
-    --cafe-gold: 42 90% 55%;
+    --mcd-red: 0 80% 45%;
+    --mcd-yellow: 45 100% 51%;
+    --mcd-green: 120 60% 35%;
+    --mcd-brown: 25 40% 25%;
 
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary: 0 80% 45%;
     --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-accent: 45 100% 51%;
+    --sidebar-accent-foreground: 0 0% 13%;
     --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-ring: 0 80% 45%;
   }
 
   .dark {
-    --background: 20 15% 10%;
-    --foreground: 30 20% 92%;
-    --card: 20 15% 14%;
-    --card-foreground: 30 20% 92%;
-    --popover: 20 15% 14%;
-    --popover-foreground: 30 20% 92%;
-    --primary: 25 80% 48%;
+    --background: 0 0% 8%;
+    --foreground: 40 20% 92%;
+    --card: 0 0% 12%;
+    --card-foreground: 40 20% 92%;
+    --popover: 0 0% 12%;
+    --popover-foreground: 40 20% 92%;
+    --primary: 0 80% 45%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 20 15% 18%;
-    --secondary-foreground: 30 20% 92%;
-    --muted: 20 15% 18%;
-    --muted-foreground: 30 10% 55%;
-    --accent: 145 40% 42%;
-    --accent-foreground: 0 0% 100%;
+    --secondary: 45 100% 51%;
+    --secondary-foreground: 0 0% 13%;
+    --muted: 0 0% 16%;
+    --muted-foreground: 40 10% 55%;
+    --accent: 45 100% 51%;
+    --accent-foreground: 0 0% 13%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 100%;
-    --border: 20 15% 20%;
-    --input: 20 15% 20%;
-    --ring: 25 80% 48%;
-    --sidebar-background: 240 5.9% 10%;
+    --border: 0 0% 18%;
+    --input: 0 0% 18%;
+    --ring: 0 80% 45%;
+    --sidebar-background: 0 0% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary: 0 80% 45%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent: 0 0% 16%;
     --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-border: 0 0% 16%;
+    --sidebar-ring: 0 80% 45%;
   }
 }
 
@@ -92,15 +90,23 @@
     @apply bg-background text-foreground font-sans;
   }
   h1, h2, h3, h4 {
-    font-family: 'Playfair Display', serif;
+    @apply font-display font-bold;
   }
 }
 
 @layer utilities {
   .font-display {
-    font-family: 'Playfair Display', serif;
+    font-family: 'Inter', sans-serif;
+    font-weight: 700;
   }
   .font-body {
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Inter', sans-serif;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
   }
 }

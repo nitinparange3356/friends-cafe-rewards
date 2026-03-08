@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { ShoppingCart, User, Coffee, Menu, X } from "lucide-react";
+import { ShoppingCart, User, Menu, X, Search } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { useState } from "react";
@@ -12,7 +12,6 @@ const Navbar = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const links = [
-    { to: "/", label: "Menu" },
     { to: "/offers", label: "Offers" },
     { to: "/contact", label: "Contact" },
   ];
@@ -20,27 +19,43 @@ const Navbar = () => {
   const isActive = (path: string) => location.pathname === path;
 
   return (
-    <nav className="sticky top-0 z-50 bg-card/80 backdrop-blur-lg border-b">
+    <nav className="sticky top-0 z-50 bg-card border-b-4 border-primary">
       <div className="container flex items-center justify-between h-16">
         <Link to="/" className="flex items-center gap-2">
-          <Coffee className="h-7 w-7 text-primary" />
-          <span className="font-display text-xl font-bold text-foreground">Friends Cafe</span>
+          <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
+            <span className="text-primary-foreground font-bold text-lg">FC</span>
+          </div>
+          <span className="font-display text-xl text-foreground hidden sm:block">Friends Cafe</span>
         </Link>
 
         {/* Desktop nav */}
-        <div className="hidden md:flex items-center gap-6">
-          {links.map(l => (
-            <Link key={l.to} to={l.to} className={`text-sm font-medium transition-colors hover:text-primary ${isActive(l.to) ? "text-primary" : "text-muted-foreground"}`}>
+        <div className="hidden md:flex items-center gap-1">
+          <Link
+            to="/"
+            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
+              isActive("/") ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-muted"
+            }`}
+          >
+            Menu
+          </Link>
+          {links.map((l) => (
+            <Link
+              key={l.to}
+              to={l.to}
+              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                isActive(l.to) ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-muted"
+              }`}
+            >
               {l.label}
             </Link>
           ))}
         </div>
 
-        <div className="flex items-center gap-3">
-          <Link to="/cart" className="relative p-2 hover:bg-secondary rounded-full transition-colors">
+        <div className="flex items-center gap-2">
+          <Link to="/cart" className="relative p-2 hover:bg-muted rounded-lg transition-colors">
             <ShoppingCart className="h-5 w-5" />
             {totalItems > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 bg-primary text-primary-foreground text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold">
+              <span className="absolute -top-0.5 -right-0.5 bg-secondary text-secondary-foreground text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-bold">
                 {totalItems}
               </span>
             )}
@@ -54,11 +69,15 @@ const Navbar = () => {
                   {user.name}
                 </Button>
               </Link>
-              <Button variant="outline" size="sm" onClick={logout}>Logout</Button>
+              <Button variant="outline" size="sm" onClick={logout}>
+                Logout
+              </Button>
             </div>
           ) : (
             <Link to="/login" className="hidden md:block">
-              <Button size="sm">Login</Button>
+              <Button size="sm" className="bg-secondary text-secondary-foreground hover:bg-secondary/90 font-bold">
+                Login
+              </Button>
             </Link>
           )}
 
@@ -70,19 +89,55 @@ const Navbar = () => {
 
       {/* Mobile menu */}
       {mobileOpen && (
-        <div className="md:hidden border-t bg-card p-4 space-y-3">
-          {links.map(l => (
-            <Link key={l.to} to={l.to} onClick={() => setMobileOpen(false)} className={`block py-2 px-3 rounded-lg text-sm font-medium ${isActive(l.to) ? "bg-primary text-primary-foreground" : "hover:bg-secondary"}`}>
+        <div className="md:hidden border-t bg-card p-4 space-y-1">
+          <Link
+            to="/"
+            onClick={() => setMobileOpen(false)}
+            className={`block py-2.5 px-3 rounded-lg text-sm font-semibold ${
+              isActive("/") ? "bg-primary text-primary-foreground" : "hover:bg-muted"
+            }`}
+          >
+            Menu
+          </Link>
+          {links.map((l) => (
+            <Link
+              key={l.to}
+              to={l.to}
+              onClick={() => setMobileOpen(false)}
+              className={`block py-2.5 px-3 rounded-lg text-sm font-semibold ${
+                isActive(l.to) ? "bg-primary text-primary-foreground" : "hover:bg-muted"
+              }`}
+            >
               {l.label}
             </Link>
           ))}
           {user ? (
             <>
-              <Link to="/dashboard" onClick={() => setMobileOpen(false)} className="block py-2 px-3 rounded-lg text-sm font-medium hover:bg-secondary">Dashboard</Link>
-              <button onClick={() => { logout(); setMobileOpen(false); }} className="block w-full text-left py-2 px-3 rounded-lg text-sm font-medium text-destructive hover:bg-secondary">Logout</button>
+              <Link
+                to="/dashboard"
+                onClick={() => setMobileOpen(false)}
+                className="block py-2.5 px-3 rounded-lg text-sm font-semibold hover:bg-muted"
+              >
+                Dashboard
+              </Link>
+              <button
+                onClick={() => {
+                  logout();
+                  setMobileOpen(false);
+                }}
+                className="block w-full text-left py-2.5 px-3 rounded-lg text-sm font-semibold text-destructive hover:bg-muted"
+              >
+                Logout
+              </button>
             </>
           ) : (
-            <Link to="/login" onClick={() => setMobileOpen(false)} className="block py-2 px-3 rounded-lg text-sm font-medium bg-primary text-primary-foreground text-center">Login</Link>
+            <Link
+              to="/login"
+              onClick={() => setMobileOpen(false)}
+              className="block py-2.5 px-3 rounded-lg text-sm font-semibold bg-secondary text-secondary-foreground text-center"
+            >
+              Login
+            </Link>
           )}
         </div>
       )}
