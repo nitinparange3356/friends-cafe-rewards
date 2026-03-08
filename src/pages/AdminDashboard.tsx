@@ -452,7 +452,10 @@ const AdminDashboard = () => {
       {/* Menu Item Dialog */}
       <Dialog open={menuDialogOpen} onOpenChange={setMenuDialogOpen}>
         <DialogContent className="max-w-sm mx-3 max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle className="text-base">{editingItem ? "Edit Item" : "Add Item"}</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle className="text-base">{editingItem ? "Edit Item" : "Add Item"}</DialogTitle>
+            <DialogDescription className="text-xs">Fill in the details below.</DialogDescription>
+          </DialogHeader>
           <div className="space-y-3">
             <ImageUpload value={form.image} onChange={url => setForm(f => ({ ...f, image: url }))} />
             <Input placeholder="Name" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
