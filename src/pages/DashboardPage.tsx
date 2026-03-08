@@ -20,65 +20,63 @@ const DashboardPage = () => {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <div className="container py-8 max-w-4xl">
-        {/* Profile Card */}
-        <div className="bg-card rounded-2xl border p-6 mb-8">
-          <div className="flex items-center gap-4 flex-wrap">
-            <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center">
-              <User className="h-7 w-7 text-primary" />
+      <div className="px-3 md:px-0 md:max-w-2xl md:mx-auto py-4 md:py-8">
+        {/* Profile */}
+        <div className="bg-card rounded-xl border p-4 mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+              <User className="h-5 w-5 text-primary" />
             </div>
-            <div className="flex-1">
-              <h1 className="font-display text-2xl font-bold">{user.name}</h1>
-              <p className="text-muted-foreground text-sm">{user.email}</p>
+            <div className="flex-1 min-w-0">
+              <h1 className="font-display text-lg font-bold truncate">{user.name}</h1>
+              <p className="text-muted-foreground text-xs truncate">{user.email}</p>
             </div>
-            <div className="flex items-center gap-2 bg-cafe-gold/10 px-4 py-2 rounded-xl">
-              <Award className="h-5 w-5 text-cafe-gold" />
-              <div>
-                <p className="text-xs text-muted-foreground">Reward Points</p>
-                <p className="font-bold text-lg text-foreground">{user.reward_points}</p>
-              </div>
+            <div className="flex items-center gap-1.5 bg-secondary/10 px-3 py-1.5 rounded-lg flex-shrink-0">
+              <Award className="h-4 w-4 text-secondary" />
+              <span className="font-bold text-sm">{user.reward_points}</span>
+              <span className="text-[10px] text-muted-foreground">pts</span>
             </div>
           </div>
         </div>
 
-        {/* Order History */}
-        <h2 className="font-display text-xl font-bold mb-4 flex items-center gap-2">
-          <Package className="h-5 w-5 text-primary" /> Order History
+        {/* Orders */}
+        <h2 className="font-display text-base font-bold mb-3 flex items-center gap-2">
+          <Package className="h-4 w-4 text-primary" /> Order History
         </h2>
 
         {userOrders.length === 0 ? (
-          <div className="text-center py-12 text-muted-foreground bg-card rounded-2xl border">
-            <Package className="h-10 w-10 mx-auto mb-3 opacity-40" />
-            <p>No orders yet. Start ordering from our menu!</p>
+          <div className="text-center py-12 text-muted-foreground bg-card rounded-xl border">
+            <Package className="h-8 w-8 mx-auto mb-2 opacity-40" />
+            <p className="text-sm">No orders yet</p>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-2">
             {userOrders.map(order => (
-              <div key={order.id} className="bg-card rounded-xl border p-5">
-                <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-                  <div>
-                    <p className="text-xs text-muted-foreground">{new Date(order.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant={order.status === "Approved" ? "default" : order.status === "Rejected" ? "destructive" : "secondary"}>
+              <div key={order.id} className="bg-card rounded-xl border p-4">
+                <div className="flex items-center justify-between mb-2 gap-2">
+                  <p className="text-[10px] text-muted-foreground">
+                    {new Date(order.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                  </p>
+                  <div className="flex items-center gap-1.5">
+                    <Badge variant={order.status === "Approved" ? "default" : order.status === "Rejected" ? "destructive" : "secondary"} className="text-[10px]">
                       {order.status}
                     </Badge>
                     {order.points_earned > 0 && (
-                      <span className="inline-flex items-center gap-1 text-xs bg-cafe-gold/10 text-cafe-gold px-2 py-1 rounded-full font-medium">
-                        <Star className="h-3 w-3" /> +{order.points_earned} pts
+                      <span className="inline-flex items-center gap-0.5 text-[10px] bg-secondary/10 text-secondary px-1.5 py-0.5 rounded-full font-medium">
+                        <Star className="h-2.5 w-2.5" /> +{order.points_earned}
                       </span>
                     )}
                   </div>
                 </div>
-                <div className="space-y-1">
+                <div className="space-y-0.5">
                   {order.items.map((item, idx) => (
-                    <div key={idx} className="flex justify-between text-sm">
+                    <div key={idx} className="flex justify-between text-xs">
                       <span className="text-muted-foreground">{item.name} × {item.quantity}</span>
                       <span>₹{item.price * item.quantity}</span>
                     </div>
                   ))}
                 </div>
-                <div className="border-t mt-3 pt-3 flex justify-between font-bold">
+                <div className="border-t mt-2 pt-2 flex justify-between font-bold text-sm">
                   <span>Total</span>
                   <span className="text-primary">₹{order.total_amount}</span>
                 </div>
