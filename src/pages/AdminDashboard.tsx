@@ -505,7 +505,10 @@ const AdminDashboard = () => {
       {/* Offer Dialog */}
       <Dialog open={offerDialogOpen} onOpenChange={setOfferDialogOpen}>
         <DialogContent className="max-w-sm mx-3 max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle className="text-base">{editingOffer ? "Edit Offer" : "Create Offer"}</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle className="text-base">{editingOffer ? "Edit Offer" : "Create Offer"}</DialogTitle>
+            <DialogDescription className="text-xs">Configure the promotional offer.</DialogDescription>
+          </DialogHeader>
           <div className="space-y-3">
             <ImageUpload value={offerForm.image} onChange={url => setOfferForm(f => ({ ...f, image: url }))} />
             <Input placeholder="Title" value={offerForm.title} onChange={e => setOfferForm(f => ({ ...f, title: e.target.value }))} />
