@@ -98,7 +98,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         await fetchProfile(session.user);
         const admin = await checkAdmin(session.user.id);
         await fetchOrders();
-        if (admin) await fetchAllUsers();
+        await fetchAllUsers();
       }
       setLoading(false);
     };
@@ -109,7 +109,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         await fetchProfile(session.user);
         const admin = await checkAdmin(session.user.id);
         await fetchOrders();
-        if (admin) await fetchAllUsers();
+        await fetchAllUsers();
       } else {
         setUser(null);
         setIsAdmin(false);
@@ -130,12 +130,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (data) {
         setUser(prev => prev ? { ...prev, reward_points: data.reward_points } : prev);
       }
-      if (isAdmin) {
-        await fetchAllUsers();
-      }
+      await fetchAllUsers();
     }, 5000);
     return () => clearInterval(interval);
-  }, [user, isAdmin, fetchOrders, fetchAllUsers]);
+  }, [user, fetchOrders, fetchAllUsers]);
 
   const signup = async (name: string, email: string, password: string) => {
     const { data, error } = await supabase.auth.signUp({
@@ -158,19 +156,39 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const adminLogin = async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) { toast.error(error.message); return false; }
-    if (data.user) {
-      const admin = await checkAdmin(data.user.id);
-      if (!admin) {
-        toast.error("You are not an admin");
-        await supabase.auth.signOut();
+    console.log("🔐 Admin login attempt:", email);
+    try {
+      console.log("📧 Signing in with email/password...");
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      console.log("✅ Sign in response:", { data: !!data, error });
+      
+      if (error) {
+        console.error("❌ Sign in error:", error.message);
+        toast.error(error.message);
         return false;
       }
-      toast.success("Admin logged in");
-      return true;
+      
+      if (data.user) {
+        console.log("👤 User signed in:", data.user.id);
+        console.log("🔍 Checking admin role...");
+        const admin = await checkAdmin(data.user.id);
+        console.log("✅ Admin check result:", admin);
+        
+        if (!admin) {
+          console.warn("⚠️ User is not an admin");
+          toast.error("You are not an admin");
+          await supabase.auth.signOut();
+          return false;
+        }
+        console.log("✅ Admin verified!");
+        toast.success("Admin logged in");
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error("💥 Admin login error:", err);
+      return false;
     }
-    return false;
   };
 
   const logout = async () => {
