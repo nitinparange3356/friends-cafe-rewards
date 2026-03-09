@@ -1,14 +1,14 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { useMenu } from "@/hooks/useMenu";
+import { useOffers } from "@/hooks/useOffers";
 import { useNavigate } from "react-router-dom";
-import { menuItems as defaultMenu } from "@/data/menu";
-import { getCategories, saveCategories } from "@/data/menu";
 import { MenuItem, VegType, Offer } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Check, X, LogOut, Plus, Edit2, Trash2, Coffee, Users, BarChart3, Package, TrendingUp, IndianRupee, Award, Tag, FolderPlus, Percent } from "lucide-react";
+import { Check, X, LogOut, Plus, Edit2, Trash2, Coffee, Users, BarChart3, Package, TrendingUp, IndianRupee, Award, Tag, FolderPlus } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -17,57 +17,40 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/
 import { BarChart, Bar, XAxis, YAxis, PieChart, Pie, Cell, LineChart, Line, ResponsiveContainer } from "recharts";
 import { Textarea } from "@/components/ui/textarea";
 import ImageUpload from "@/components/ImageUpload";
+import { supabase } from "@/integrations/supabase/client";
 
 const AdminDashboard = () => {
-  const { isAdmin, adminLogin, logout, orders, approveOrder, rejectOrder } = useAuth();
+  const { isAdmin, adminLogin, logout, orders, approveOrder, rejectOrder, adjustPoints, allUsers, loading: authLoading } = useAuth();
+  const { menuItems: menu, categories: dynamicCategories, refetchMenu, refetchCategories } = useMenu();
+  const { offers, refetchOffers } = useOffers();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loginLoading, setLoginLoading] = useState(false);
 
-  // Menu management
-  const [menu, setMenu] = useState<MenuItem[]>(() => {
-    const saved = localStorage.getItem("friends-cafe-menu");
-    return saved ? JSON.parse(saved) : defaultMenu;
-  });
+  // Menu dialog
   const [menuDialogOpen, setMenuDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
   const [form, setForm] = useState({
     name: "", description: "", price: "", actual_price: "", offer: "", category: "", veg_type: "veg" as VegType, image: "", available: true
   });
 
-  // Category management
-  const [dynamicCategories, setDynamicCategories] = useState<string[]>(getCategories);
+  // Category dialog
   const [catDialogOpen, setCatDialogOpen] = useState(false);
   const [newCatName, setNewCatName] = useState("");
   const [editingCat, setEditingCat] = useState<string | null>(null);
 
-  // Offers management
-  const [offers, setOffers] = useState<Offer[]>(() => {
-    const saved = localStorage.getItem("friends-cafe-offers");
-    return saved ? JSON.parse(saved) : [];
-  });
+  // Offer dialog
   const [offerDialogOpen, setOfferDialogOpen] = useState(false);
   const [editingOffer, setEditingOffer] = useState<Offer | null>(null);
   const [offerForm, setOfferForm] = useState({
     title: "", description: "", discount_percent: "", code: "", valid_until: "", image: "", active: true
   });
 
-  // User points dialog
+  // Points dialog
   const [pointsDialogOpen, setPointsDialogOpen] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState("");
   const [pointsAdjust, setPointsAdjust] = useState("");
-
-  const [usersVersion, setUsersVersion] = useState(0);
-  const allUsers = useMemo(() => {
-    const saved = localStorage.getItem("friends-cafe-users");
-    return saved ? JSON.parse(saved) : [];
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [orders, usersVersion]);
-
-  // Persist
-  useEffect(() => { localStorage.setItem("friends-cafe-menu", JSON.stringify(menu)); }, [menu]);
-  useEffect(() => { localStorage.setItem("friends-cafe-offers", JSON.stringify(offers)); }, [offers]);
-  useEffect(() => { saveCategories(dynamicCategories); }, [dynamicCategories]);
 
   // Analytics
   const analytics = useMemo(() => {
@@ -101,11 +84,14 @@ const AdminDashboard = () => {
     return { totalRevenue, totalOrders, avgOrderValue, totalPoints, statusData, topItems, revenueByDay };
   }, [orders]);
 
-  const handleLogin = (e: React.FormEvent) => { e.preventDefault(); adminLogin(email, password); };
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginLoading(true);
+    await adminLogin(email, password);
+    setLoginLoading(false);
+  };
 
   // === Menu ===
-  const saveMenu = (updated: MenuItem[]) => setMenu(updated);
-
   const openAddMenu = () => {
     setEditingItem(null);
     setForm({ name: "", description: "", price: "", actual_price: "", offer: "", category: dynamicCategories[0] || "", veg_type: "veg", image: "", available: true });
@@ -118,49 +104,61 @@ const AdminDashboard = () => {
     setMenuDialogOpen(true);
   };
 
-  const saveItem = () => {
+  const saveItem = async () => {
     if (!form.name || !form.price || !form.category) { toast.error("Name, price & category required"); return; }
-    const item: MenuItem = {
-      id: editingItem?.id || crypto.randomUUID(), name: form.name, description: form.description,
+    const itemData = {
+      name: form.name, description: form.description,
       price: Number(form.price), actual_price: Number(form.actual_price) || Number(form.price),
       offer: Number(form.offer) || 0, category: form.category, veg_type: form.veg_type,
       image: form.image || "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=400&h=300&fit=crop",
       available: form.available,
     };
     if (editingItem) {
-      saveMenu(menu.map(m => m.id === item.id ? item : m));
+      const { error } = await supabase.from("menu_items").update(itemData).eq("id", editingItem.id);
+      if (error) { toast.error("Failed to update"); return; }
       toast.success("Item updated");
     } else {
-      saveMenu([...menu, item]);
+      const { error } = await supabase.from("menu_items").insert(itemData);
+      if (error) { toast.error("Failed to add"); return; }
       toast.success("Item added");
     }
     setMenuDialogOpen(false);
+    refetchMenu();
+  };
+
+  const deleteMenuItem = async (id: string) => {
+    await supabase.from("menu_items").delete().eq("id", id);
+    toast.success("Deleted");
+    refetchMenu();
   };
 
   // === Categories ===
-  const addCategory = () => {
+  const addCategory = async () => {
     const name = newCatName.trim();
     if (!name) { toast.error("Enter a category name"); return; }
-    if (dynamicCategories.includes(name)) { toast.error("Category already exists"); return; }
     if (editingCat) {
-      // Rename category in menu items too
-      setDynamicCategories(prev => prev.map(c => c === editingCat ? name : c));
-      setMenu(prev => prev.map(m => m.category === editingCat ? { ...m, category: name } : m));
+      await supabase.from("categories").update({ name }).eq("name", editingCat);
+      // Update menu items with old category name
+      await supabase.from("menu_items").update({ category: name }).eq("category", editingCat);
       toast.success("Category renamed");
     } else {
-      setDynamicCategories(prev => [...prev, name]);
+      const { error } = await supabase.from("categories").insert({ name, sort_order: dynamicCategories.length });
+      if (error) { toast.error(error.message); return; }
       toast.success("Category added");
     }
     setNewCatName("");
     setEditingCat(null);
     setCatDialogOpen(false);
+    refetchCategories();
+    refetchMenu();
   };
 
-  const deleteCategory = (cat: string) => {
+  const deleteCategory = async (cat: string) => {
     const itemsInCat = menu.filter(m => m.category === cat).length;
     if (itemsInCat > 0) { toast.error(`Remove ${itemsInCat} items from "${cat}" first`); return; }
-    setDynamicCategories(prev => prev.filter(c => c !== cat));
+    await supabase.from("categories").delete().eq("name", cat);
     toast.success("Category deleted");
+    refetchCategories();
   };
 
   // === Offers ===
@@ -176,43 +174,35 @@ const AdminDashboard = () => {
     setOfferDialogOpen(true);
   };
 
-  const saveOffer = () => {
+  const saveOffer = async () => {
     if (!offerForm.title) { toast.error("Title required"); return; }
-    const offer: Offer = {
-      id: editingOffer?.id || crypto.randomUUID(),
+    const offerData = {
       title: offerForm.title, description: offerForm.description,
       discount_percent: Number(offerForm.discount_percent) || 0,
       code: offerForm.code.toUpperCase(), valid_until: offerForm.valid_until,
       image: offerForm.image, active: offerForm.active,
     };
     if (editingOffer) {
-      setOffers(prev => prev.map(o => o.id === offer.id ? offer : o));
+      await supabase.from("offers").update(offerData).eq("id", editingOffer.id);
       toast.success("Offer updated");
     } else {
-      setOffers(prev => [...prev, offer]);
+      await supabase.from("offers").insert(offerData);
       toast.success("Offer created");
     }
     setOfferDialogOpen(false);
+    refetchOffers();
+  };
+
+  const deleteOffer = async (id: string) => {
+    await supabase.from("offers").delete().eq("id", id);
+    toast.success("Deleted");
+    refetchOffers();
   };
 
   // === Points ===
-  const adjustPoints = () => {
+  const handleAdjustPoints = async () => {
     if (!selectedUserId || !pointsAdjust) return;
-    const adj = Number(pointsAdjust);
-    const usersRaw = localStorage.getItem("friends-cafe-users");
-    const users = usersRaw ? JSON.parse(usersRaw) : [];
-    const updated = users.map((u: any) => u.id === selectedUserId ? { ...u, reward_points: Math.max(0, (u.reward_points || 0) + adj) } : u);
-    localStorage.setItem("friends-cafe-users", JSON.stringify(updated));
-    const curUser = localStorage.getItem("friends-cafe-user");
-    if (curUser) {
-      const cu = JSON.parse(curUser);
-      if (cu.id === selectedUserId) {
-        cu.reward_points = Math.max(0, (cu.reward_points || 0) + adj);
-        localStorage.setItem("friends-cafe-user", JSON.stringify(cu));
-      }
-    }
-    toast.success(`Points adjusted by ${adj > 0 ? "+" : ""}${adj}`);
-    setUsersVersion(v => v + 1);
+    await adjustPoints(selectedUserId, Number(pointsAdjust));
     setPointsDialogOpen(false);
     setPointsAdjust("");
   };
@@ -229,9 +219,9 @@ const AdminDashboard = () => {
           <form onSubmit={handleLogin} className="bg-card rounded-2xl border p-5 space-y-3">
             <Input type="email" placeholder="Admin email" value={email} onChange={e => setEmail(e.target.value)} required />
             <Input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required />
-            <Button type="submit" className="w-full">Login</Button>
+            <Button type="submit" className="w-full" disabled={loginLoading}>{loginLoading ? "Logging in..." : "Login"}</Button>
           </form>
-          <p className="text-center text-[10px] text-muted-foreground">Demo: admin@friendscafe.com / admin123</p>
+          <p className="text-center text-[10px] text-muted-foreground">Use your admin account credentials</p>
         </div>
       </div>
     );
@@ -267,7 +257,7 @@ const AdminDashboard = () => {
             </TabsList>
           </div>
 
-          {/* ===== ANALYTICS ===== */}
+          {/* ANALYTICS */}
           <TabsContent value="analytics" className="space-y-4">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <Card><CardContent className="p-4"><div className="flex items-center gap-2 mb-1"><IndianRupee className="h-4 w-4 text-mcd-green" /><span className="text-xs text-muted-foreground">Revenue</span></div><p className="text-xl font-bold">₹{analytics.totalRevenue.toLocaleString()}</p></CardContent></Card>
@@ -310,7 +300,7 @@ const AdminDashboard = () => {
             </div>
           </TabsContent>
 
-          {/* ===== ORDERS ===== */}
+          {/* ORDERS */}
           <TabsContent value="orders" className="space-y-3">
             {orders.length === 0 ? <p className="text-center text-muted-foreground py-12">No orders yet</p> : orders.map(order => (
               <div key={order.id} className="bg-card rounded-xl border p-4">
@@ -333,14 +323,14 @@ const AdminDashboard = () => {
             ))}
           </TabsContent>
 
-          {/* ===== USERS ===== */}
+          {/* USERS */}
           <TabsContent value="users" className="space-y-3">
             {allUsers.length === 0 ? <p className="text-center text-muted-foreground py-12">No users yet</p> : (
               <div className="space-y-2">
                 <p className="text-xs text-muted-foreground">{allUsers.length} users</p>
-                {allUsers.map((u: any) => {
+                {allUsers.map((u) => {
                   const userOrders = orders.filter(o => o.user_id === u.id);
-                  const totalSpent = userOrders.filter(o => o.status === "Approved").reduce((s: number, o: any) => s + o.total_amount, 0);
+                  const totalSpent = userOrders.filter(o => o.status === "Approved").reduce((s, o) => s + o.total_amount, 0);
                   return (
                     <div key={u.id} className="bg-card rounded-xl border p-3 flex items-center gap-3">
                       <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0"><Users className="h-4 w-4 text-primary" /></div>
@@ -359,7 +349,7 @@ const AdminDashboard = () => {
             )}
           </TabsContent>
 
-          {/* ===== MENU ===== */}
+          {/* MENU */}
           <TabsContent value="menu">
             <div className="flex justify-between items-center mb-3">
               <p className="text-muted-foreground text-xs">{menu.length} items</p>
@@ -375,14 +365,14 @@ const AdminDashboard = () => {
                   </div>
                   <div className="flex gap-0.5 flex-shrink-0">
                     <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEditMenu(item)}><Edit2 className="h-3.5 w-3.5" /></Button>
-                    <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => { saveMenu(menu.filter(m => m.id !== item.id)); toast.success("Deleted"); }}><Trash2 className="h-3.5 w-3.5" /></Button>
+                    <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => deleteMenuItem(item.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
                   </div>
                 </div>
               ))}
             </div>
           </TabsContent>
 
-          {/* ===== CATEGORIES ===== */}
+          {/* CATEGORIES */}
           <TabsContent value="categories">
             <div className="flex justify-between items-center mb-3">
               <p className="text-muted-foreground text-xs">{dynamicCategories.length} categories</p>
@@ -408,7 +398,7 @@ const AdminDashboard = () => {
             </div>
           </TabsContent>
 
-          {/* ===== OFFERS ===== */}
+          {/* OFFERS */}
           <TabsContent value="offers">
             <div className="flex justify-between items-center mb-3">
               <p className="text-muted-foreground text-xs">{offers.length} offers</p>
@@ -439,7 +429,7 @@ const AdminDashboard = () => {
                       </div>
                       <div className="flex gap-0.5 flex-shrink-0">
                         <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEditOffer(offer)}><Edit2 className="h-3.5 w-3.5" /></Button>
-                        <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => { setOffers(prev => prev.filter(o => o.id !== offer.id)); toast.success("Deleted"); }}><Trash2 className="h-3.5 w-3.5" /></Button>
+                        <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => deleteOffer(offer.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
                       </div>
                     </div>
                   </div>
@@ -450,7 +440,7 @@ const AdminDashboard = () => {
         </Tabs>
       </div>
 
-      {/* ===== DIALOGS ===== */}
+      {/* DIALOGS */}
 
       {/* Menu Item Dialog */}
       <Dialog open={menuDialogOpen} onOpenChange={setMenuDialogOpen}>
@@ -539,7 +529,7 @@ const AdminDashboard = () => {
           </DialogHeader>
           <div className="space-y-3">
             <Input type="number" placeholder="e.g. 50 or -20" value={pointsAdjust} onChange={e => setPointsAdjust(e.target.value)} />
-            <Button onClick={adjustPoints} className="w-full" size="sm">Apply</Button>
+            <Button onClick={handleAdjustPoints} className="w-full" size="sm">Apply</Button>
           </div>
         </DialogContent>
       </Dialog>

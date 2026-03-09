@@ -10,9 +10,9 @@ const CartPage = () => {
   const { user, placeOrder } = useAuth();
   const navigate = useNavigate();
 
-  const handlePlaceOrder = () => {
+  const handlePlaceOrder = async () => {
     if (!user) { navigate("/login"); return; }
-    placeOrder({
+    await placeOrder({
       items: items.map(i => ({ menu_item_id: i.menuItem.id, name: i.menuItem.name, quantity: i.quantity, price: i.menuItem.price })),
       total_amount: totalAmount,
     });
@@ -65,14 +65,13 @@ const CartPage = () => {
           ))}
         </div>
 
-        {/* Sticky bottom on mobile */}
         <div className="mt-4 bg-card rounded-xl border p-4 md:p-6 space-y-3">
           <div className="flex justify-between text-base md:text-lg font-bold">
             <span>Total</span>
             <span className="text-primary">₹{totalAmount}</span>
           </div>
           <p className="text-[11px] text-muted-foreground">
-            You'll earn <strong className="text-primary">{Math.floor(totalAmount / 100) * 10}</strong> reward points!
+            You'll earn <strong className="text-primary">{Math.floor(totalAmount / 2)}</strong> reward points!
           </p>
           <Button className="w-full" size="lg" onClick={handlePlaceOrder}>
             {user ? "Place Order" : "Login to Place Order"}

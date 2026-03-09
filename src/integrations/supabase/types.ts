@@ -14,16 +14,236 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      categories: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
+      menu_items: {
+        Row: {
+          actual_price: number
+          available: boolean
+          category: string
+          created_at: string
+          description: string
+          id: string
+          image: string
+          name: string
+          offer: number
+          price: number
+          veg_type: string
+        }
+        Insert: {
+          actual_price: number
+          available?: boolean
+          category: string
+          created_at?: string
+          description?: string
+          id?: string
+          image?: string
+          name: string
+          offer?: number
+          price: number
+          veg_type?: string
+        }
+        Update: {
+          actual_price?: number
+          available?: boolean
+          category?: string
+          created_at?: string
+          description?: string
+          id?: string
+          image?: string
+          name?: string
+          offer?: number
+          price?: number
+          veg_type?: string
+        }
+        Relationships: []
+      }
+      offers: {
+        Row: {
+          active: boolean
+          code: string
+          created_at: string
+          description: string
+          discount_percent: number
+          id: string
+          image: string
+          title: string
+          valid_until: string
+        }
+        Insert: {
+          active?: boolean
+          code?: string
+          created_at?: string
+          description?: string
+          discount_percent?: number
+          id?: string
+          image?: string
+          title: string
+          valid_until?: string
+        }
+        Update: {
+          active?: boolean
+          code?: string
+          created_at?: string
+          description?: string
+          discount_percent?: number
+          id?: string
+          image?: string
+          title?: string
+          valid_until?: string
+        }
+        Relationships: []
+      }
+      order_items: {
+        Row: {
+          id: string
+          menu_item_id: string
+          name: string
+          order_id: string
+          price: number
+          quantity: number
+        }
+        Insert: {
+          id?: string
+          menu_item_id: string
+          name: string
+          order_id: string
+          price: number
+          quantity: number
+        }
+        Update: {
+          id?: string
+          menu_item_id?: string
+          name?: string
+          order_id?: string
+          price?: number
+          quantity?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orders: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          points_earned: number
+          status: string
+          total_amount: number
+          user_id: string
+          user_name: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          points_earned?: number
+          status?: string
+          total_amount: number
+          user_id: string
+          user_name: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          points_earned?: number
+          status?: string
+          total_amount?: number
+          user_id?: string
+          user_name?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          name: string
+          reward_points: number
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id: string
+          name: string
+          reward_points?: number
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string
+          reward_points?: number
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      adjust_points: {
+        Args: { adjustment: number; target_user_id: string }
+        Returns: undefined
+      }
+      approve_order: { Args: { order_id: string }; Returns: undefined }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      reject_order: { Args: { order_id: string }; Returns: undefined }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +370,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "user"],
+    },
   },
 } as const

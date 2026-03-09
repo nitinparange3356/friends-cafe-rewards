@@ -1,6 +1,5 @@
-import { useState, useMemo } from "react";
-import { menuItems as defaultMenuItems } from "@/data/menu";
-import { getCategories } from "@/data/menu";
+import { useState } from "react";
+import { useMenu } from "@/hooks/useMenu";
 import MenuItemCard from "@/components/MenuItemCard";
 import Navbar from "@/components/Navbar";
 import type { VegType } from "@/types";
@@ -19,17 +18,21 @@ const defaultCatImage = "https://images.unsplash.com/photo-1495474472287-4d71bcd
 const Index = () => {
   const [activeCategory, setActiveCategory] = useState<string>("All");
   const [vegFilter, setVegFilter] = useState<VegType | null>(null);
-
-  const categories = useMemo(() => getCategories(), []);
-  const menuItems = useMemo(() => {
-    const saved = localStorage.getItem("friends-cafe-menu");
-    return saved ? JSON.parse(saved) : defaultMenuItems;
-  }, []);
+  const { menuItems, categories, loading } = useMenu();
 
   const filtered = menuItems
-    .filter((i: any) => i.available)
-    .filter((i: any) => activeCategory === "All" || i.category === activeCategory)
-    .filter((i: any) => !vegFilter || i.veg_type === vegFilter);
+    .filter(i => i.available)
+    .filter(i => activeCategory === "All" || i.category === activeCategory)
+    .filter(i => !vegFilter || i.veg_type === vegFilter);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="flex items-center justify-center py-20 text-muted-foreground">Loading menu...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -47,7 +50,7 @@ const Index = () => {
             <span className="text-xl">🍽️</span>
             <span>All</span>
           </button>
-          {categories.map((cat: string) => (
+          {categories.map((cat) => (
             <button
               key={cat}
               onClick={() => setActiveCategory(cat)}
@@ -90,7 +93,7 @@ const Index = () => {
               <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center text-lg">🍽️</div>
               <span>All</span>
             </button>
-            {categories.map((cat: string) => (
+            {categories.map((cat) => (
               <button key={cat} onClick={() => setActiveCategory(cat)}
                 className={`w-full flex flex-col items-center gap-1 py-3 px-2 text-xs font-semibold transition-colors relative ${activeCategory === cat ? "text-primary" : "text-muted-foreground hover:text-foreground"}`}>
                 {activeCategory === cat && <div className="absolute left-0 top-1 bottom-1 w-1 bg-primary rounded-r-full" />}
@@ -122,7 +125,7 @@ const Index = () => {
           <div className="px-3 md:px-6 py-2 md:py-4">
             <p className="text-xs text-muted-foreground mb-1">{activeCategory === "All" ? "All Items" : activeCategory} ({filtered.length})</p>
             <div className="divide-y">
-              {filtered.map((item: any) => <MenuItemCard key={item.id} item={item} />)}
+              {filtered.map((item) => <MenuItemCard key={item.id} item={item} />)}
             </div>
             {filtered.length === 0 && (
               <div className="text-center py-16 text-muted-foreground">

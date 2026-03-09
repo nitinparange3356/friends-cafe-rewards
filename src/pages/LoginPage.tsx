@@ -10,15 +10,21 @@ const LoginPage = () => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
   const { login, signup } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isSignup) {
-      if (signup(name, email, password)) navigate("/");
-    } else {
-      if (login(email, password)) navigate("/");
+    setLoading(true);
+    try {
+      if (isSignup) {
+        if (await signup(name, email, password)) navigate("/");
+      } else {
+        if (await login(email, password)) navigate("/");
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -49,8 +55,8 @@ const LoginPage = () => {
             <label className="text-sm font-medium mb-1.5 block">Password</label>
             <Input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" required minLength={6} />
           </div>
-          <Button type="submit" className="w-full" size="lg">
-            {isSignup ? "Sign Up" : "Login"}
+          <Button type="submit" className="w-full" size="lg" disabled={loading}>
+            {loading ? "Please wait..." : isSignup ? "Sign Up" : "Login"}
           </Button>
         </form>
 

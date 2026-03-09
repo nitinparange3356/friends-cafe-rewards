@@ -1,155 +1,242 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { User, Order } from "@/types";
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
+import { User, Order, OrderItem } from "@/types";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import type { User as SupaUser } from "@supabase/supabase-js";
 
 interface AuthContextType {
   user: User | null;
   isAdmin: boolean;
   orders: Order[];
-  login: (email: string, password: string) => boolean;
-  signup: (name: string, email: string, password: string) => boolean;
-  adminLogin: (email: string, password: string) => boolean;
-  logout: () => void;
-  placeOrder: (order: Omit<Order, "id" | "user_id" | "user_name" | "email" | "status" | "created_at" | "points_earned">) => void;
-  approveOrder: (orderId: string) => void;
-  rejectOrder: (orderId: string) => void;
+  loading: boolean;
+  login: (email: string, password: string) => Promise<boolean>;
+  signup: (name: string, email: string, password: string) => Promise<boolean>;
+  adminLogin: (email: string, password: string) => Promise<boolean>;
+  logout: () => Promise<void>;
+  placeOrder: (order: { items: OrderItem[]; total_amount: number }) => Promise<void>;
+  approveOrder: (orderId: string) => Promise<void>;
+  rejectOrder: (orderId: string) => Promise<void>;
+  adjustPoints: (userId: string, adjustment: number) => Promise<void>;
+  allUsers: User[];
+  refreshOrders: () => Promise<void>;
+  refreshUsers: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const ADMIN_EMAIL = "admin@friendscafe.com";
-const ADMIN_PASSWORD = "admin123";
-
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(() => {
-    const saved = localStorage.getItem("friends-cafe-user");
-    return saved ? JSON.parse(saved) : null;
-  });
-  const [isAdmin, setIsAdmin] = useState(() => {
-    return localStorage.getItem("friends-cafe-admin") === "true";
-  });
-  const [orders, setOrders] = useState<Order[]>(() => {
-    const saved = localStorage.getItem("friends-cafe-orders");
-    return saved ? JSON.parse(saved) : [];
-  });
-  const [users, setUsers] = useState<User[]>(() => {
-    const saved = localStorage.getItem("friends-cafe-users");
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [user, setUser] = useState<User | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [allUsers, setAllUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (user) localStorage.setItem("friends-cafe-user", JSON.stringify(user));
-    else localStorage.removeItem("friends-cafe-user");
-  }, [user]);
+  const fetchProfile = async (supaUser: SupaUser) => {
+    const { data } = await supabase.from("profiles").select("*").eq("id", supaUser.id).single();
+    if (data) {
+      setUser({ id: data.id, name: data.name, email: data.email, reward_points: data.reward_points, created_at: data.created_at });
+    }
+  };
 
-  useEffect(() => {
-    localStorage.setItem("friends-cafe-admin", String(isAdmin));
-  }, [isAdmin]);
+  const checkAdmin = async (userId: string) => {
+    const { data } = await supabase.from("user_roles").select("role").eq("user_id", userId).eq("role", "admin").maybeSingle();
+    setIsAdmin(!!data);
+    return !!data;
+  };
 
-  useEffect(() => {
-    localStorage.setItem("friends-cafe-orders", JSON.stringify(orders));
-  }, [orders]);
+  const fetchOrders = useCallback(async (userId?: string, admin?: boolean) => {
+    let query = supabase.from("orders").select("*").order("created_at", { ascending: false });
+    // RLS handles filtering - admins see all, users see own
+    const { data: ordersData } = await query;
+    if (!ordersData) return;
 
-  useEffect(() => {
-    localStorage.setItem("friends-cafe-users", JSON.stringify(users));
-  }, [users]);
+    // Fetch order items for all orders
+    const orderIds = ordersData.map(o => o.id);
+    if (orderIds.length === 0) { setOrders([]); return; }
+    
+    const { data: itemsData } = await supabase.from("order_items").select("*").in("order_id", orderIds);
+    
+    const mapped: Order[] = ordersData.map(o => ({
+      id: o.id,
+      user_id: o.user_id,
+      user_name: o.user_name,
+      email: o.email,
+      total_amount: o.total_amount,
+      status: o.status as Order["status"],
+      points_earned: o.points_earned,
+      created_at: o.created_at,
+      items: (itemsData || []).filter(i => i.order_id === o.id).map(i => ({
+        menu_item_id: i.menu_item_id,
+        name: i.name,
+        quantity: i.quantity,
+        price: i.price,
+      })),
+    }));
+    setOrders(mapped);
+  }, []);
 
-  // Poll localStorage every 5s to sync orders & user data across tabs/views
+  const refreshOrders = useCallback(async () => {
+    await fetchOrders();
+  }, [fetchOrders]);
+
+  const fetchAllUsers = useCallback(async () => {
+    const { data } = await supabase.from("profiles").select("*").order("created_at", { ascending: false });
+    if (data) {
+      setAllUsers(data.map(d => ({ id: d.id, name: d.name, email: d.email, reward_points: d.reward_points, created_at: d.created_at })));
+    }
+  }, []);
+
+  const refreshUsers = useCallback(async () => {
+    await fetchAllUsers();
+  }, [fetchAllUsers]);
+
+  // Init auth
   useEffect(() => {
-    const interval = setInterval(() => {
-      const savedOrders = localStorage.getItem("friends-cafe-orders");
-      if (savedOrders) {
-        const parsed = JSON.parse(savedOrders);
-        setOrders(prev => JSON.stringify(prev) !== savedOrders ? parsed : prev);
+    const init = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        await fetchProfile(session.user);
+        const admin = await checkAdmin(session.user.id);
+        await fetchOrders();
+        if (admin) await fetchAllUsers();
       }
-      const savedUsers = localStorage.getItem("friends-cafe-users");
-      if (savedUsers) {
-        const parsedUsers = JSON.parse(savedUsers);
-        setUsers(prev => JSON.stringify(prev) !== savedUsers ? parsedUsers : prev);
+      setLoading(false);
+    };
+    init();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session?.user) {
+        await fetchProfile(session.user);
+        const admin = await checkAdmin(session.user.id);
+        await fetchOrders();
+        if (admin) await fetchAllUsers();
+      } else {
+        setUser(null);
+        setIsAdmin(false);
+        setOrders([]);
+        setAllUsers([]);
       }
-      // Sync current user's points
-      if (user) {
-        const savedUser = localStorage.getItem("friends-cafe-user");
-        if (savedUser) {
-          const parsedUser = JSON.parse(savedUser);
-          setUser(prev => prev && JSON.stringify(prev) !== savedUser ? parsedUser : prev);
-        }
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // Poll orders every 5s
+  useEffect(() => {
+    if (!user) return;
+    const interval = setInterval(async () => {
+      await fetchOrders();
+      // Refresh user profile for points
+      const { data } = await supabase.from("profiles").select("*").eq("id", user.id).single();
+      if (data) {
+        setUser(prev => prev ? { ...prev, reward_points: data.reward_points } : prev);
+      }
+      if (isAdmin) {
+        await fetchAllUsers();
       }
     }, 5000);
     return () => clearInterval(interval);
-  }, [user]);
+  }, [user, isAdmin, fetchOrders, fetchAllUsers]);
 
-  const signup = (name: string, email: string, password: string) => {
-    const existing = users.find(u => u.email === email);
-    if (existing) { toast.error("Email already registered"); return false; }
-    const newUser: User = { id: crypto.randomUUID(), name, email, reward_points: 0, created_at: new Date().toISOString() };
-    setUsers(prev => [...prev, { ...newUser, password } as any]);
-    setUser(newUser);
-    toast.success("Account created successfully!");
-    return true;
+  const signup = async (name: string, email: string, password: string) => {
+    const { data, error } = await supabase.auth.signUp({
+      email, password,
+      options: { data: { name } }
+    });
+    if (error) { toast.error(error.message); return false; }
+    if (data.user) {
+      toast.success("Account created! Please check your email to verify.");
+      return true;
+    }
+    return false;
   };
 
-  const login = (email: string, password: string) => {
-    const found = users.find((u: any) => u.email === email && u.password === password);
-    if (!found) { toast.error("Invalid credentials"); return false; }
-    const { password: _, ...safeUser } = found as any;
-    setUser(safeUser);
+  const login = async (email: string, password: string) => {
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) { toast.error(error.message); return false; }
     toast.success("Welcome back!");
     return true;
   };
 
-  const adminLogin = (email: string, password: string) => {
-    if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
-      setIsAdmin(true);
+  const adminLogin = async (email: string, password: string) => {
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) { toast.error(error.message); return false; }
+    if (data.user) {
+      const admin = await checkAdmin(data.user.id);
+      if (!admin) {
+        toast.error("You are not an admin");
+        await supabase.auth.signOut();
+        return false;
+      }
       toast.success("Admin logged in");
       return true;
     }
-    toast.error("Invalid admin credentials");
     return false;
   };
 
-  const logout = () => {
+  const logout = async () => {
+    await supabase.auth.signOut();
     setUser(null);
     setIsAdmin(false);
+    setOrders([]);
+    setAllUsers([]);
     toast.success("Logged out");
   };
 
-  const placeOrder = (orderData: Omit<Order, "id" | "user_id" | "user_name" | "email" | "status" | "created_at" | "points_earned">) => {
+  const placeOrder = async (orderData: { items: OrderItem[]; total_amount: number }) => {
     if (!user) return;
-    const newOrder: Order = {
-      ...orderData,
-      id: crypto.randomUUID(),
+    const { data: orderRow, error } = await supabase.from("orders").insert({
       user_id: user.id,
       user_name: user.name,
       email: user.email,
+      total_amount: orderData.total_amount,
       status: "Pending",
-      created_at: new Date().toISOString(),
       points_earned: 0,
-    };
-    setOrders(prev => [newOrder, ...prev]);
-    toast.success("Order placed successfully!");
-  };
+    }).select().single();
 
-  const approveOrder = (orderId: string) => {
-    setOrders(prev => prev.map(o => {
-      if (o.id !== orderId) return o;
-      const points = Math.floor(o.total_amount / 100) * 10;
-      // Update user points
-      setUsers(prevUsers => prevUsers.map(u => u.id === o.user_id ? { ...u, reward_points: (u.reward_points || 0) + points } : u));
-      // Update current user if it's them
-      setUser(prevUser => prevUser && prevUser.id === o.user_id ? { ...prevUser, reward_points: (prevUser.reward_points || 0) + points } : prevUser);
-      return { ...o, status: "Approved" as const, points_earned: points };
+    if (error || !orderRow) { toast.error("Failed to place order"); return; }
+
+    const items = orderData.items.map(i => ({
+      order_id: orderRow.id,
+      menu_item_id: i.menu_item_id,
+      name: i.name,
+      quantity: i.quantity,
+      price: i.price,
     }));
-    toast.success("Order approved & points awarded!");
+
+    await supabase.from("order_items").insert(items);
+    toast.success("Order placed successfully!");
+    await fetchOrders();
   };
 
-  const rejectOrder = (orderId: string) => {
-    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: "Rejected" as const } : o));
+  const approveOrder = async (orderId: string) => {
+    const { error } = await supabase.rpc("approve_order", { order_id: orderId });
+    if (error) { toast.error("Failed to approve: " + error.message); return; }
+    toast.success("Order approved & points awarded!");
+    await fetchOrders();
+    await fetchAllUsers();
+  };
+
+  const rejectOrder = async (orderId: string) => {
+    const { error } = await supabase.rpc("reject_order", { order_id: orderId });
+    if (error) { toast.error("Failed to reject: " + error.message); return; }
     toast.success("Order rejected");
+    await fetchOrders();
+  };
+
+  const adjustPoints = async (userId: string, adjustment: number) => {
+    const { error } = await supabase.rpc("adjust_points", { target_user_id: userId, adjustment });
+    if (error) { toast.error("Failed: " + error.message); return; }
+    toast.success(`Points adjusted by ${adjustment > 0 ? "+" : ""}${adjustment}`);
+    await fetchAllUsers();
+    // Refresh current user if it's them
+    if (user && user.id === userId) {
+      const { data } = await supabase.from("profiles").select("*").eq("id", userId).single();
+      if (data) setUser(prev => prev ? { ...prev, reward_points: data.reward_points } : prev);
+    }
   };
 
   return (
-    <AuthContext.Provider value={{ user, isAdmin, orders, login, signup, adminLogin, logout, placeOrder, approveOrder, rejectOrder }}>
+    <AuthContext.Provider value={{ user, isAdmin, orders, loading, login, signup, adminLogin, logout, placeOrder, approveOrder, rejectOrder, adjustPoints, allUsers, refreshOrders, refreshUsers }}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,30 +1,21 @@
-import { useMemo } from "react";
+import { useMenu } from "@/hooks/useMenu";
+import { useOffers } from "@/hooks/useOffers";
 import Navbar from "@/components/Navbar";
-import { menuItems as defaultMenuItems } from "@/data/menu";
 import MenuItemCard from "@/components/MenuItemCard";
 import { Percent, Tag } from "lucide-react";
-import { Offer } from "@/types";
 import { Badge } from "@/components/ui/badge";
 
 const OffersPage = () => {
-  const menuItems = useMemo(() => {
-    const saved = localStorage.getItem("friends-cafe-menu");
-    return saved ? JSON.parse(saved) : defaultMenuItems;
-  }, []);
-
-  const offers: Offer[] = useMemo(() => {
-    const saved = localStorage.getItem("friends-cafe-offers");
-    return saved ? JSON.parse(saved) : [];
-  }, []);
+  const { menuItems } = useMenu();
+  const { offers } = useOffers();
 
   const activeOffers = offers.filter(o => o.active);
-  const offerItems = menuItems.filter((i: any) => i.offer > 0 && i.available).sort((a: any, b: any) => b.offer - a.offer);
+  const offerItems = menuItems.filter(i => i.offer > 0 && i.available).sort((a, b) => b.offer - a.offer);
 
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
       <div className="px-3 md:px-0 md:max-w-3xl md:mx-auto py-4 md:py-8">
-        {/* Promo offers banner */}
         {activeOffers.length > 0 && (
           <div className="mb-6">
             <h2 className="font-display text-lg font-bold flex items-center gap-2 mb-3">
@@ -54,7 +45,6 @@ const OffersPage = () => {
           </div>
         )}
 
-        {/* Menu items with discounts */}
         <div className="text-center mb-4">
           <div className="inline-flex items-center gap-2 bg-secondary/20 text-secondary-foreground px-3 py-1 rounded-full text-xs font-bold mb-2">
             <Percent className="h-3.5 w-3.5" /> Best Deals
@@ -63,9 +53,7 @@ const OffersPage = () => {
         </div>
 
         <div className="divide-y">
-          {offerItems.map((item: any) => (
-            <MenuItemCard key={item.id} item={item} />
-          ))}
+          {offerItems.map(item => <MenuItemCard key={item.id} item={item} />)}
         </div>
 
         {offerItems.length === 0 && activeOffers.length === 0 && (
