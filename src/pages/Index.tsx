@@ -124,7 +124,7 @@ const Index = () => {
 
           <div className="px-3 md:px-6 py-2 md:py-4">
             <p className="text-xs text-muted-foreground mb-1">{activeCategory === "All" ? "All Items" : activeCategory} ({filtered.length})</p>
-            <div className="divide-y">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {filtered.map((item) => <MenuItemCard key={item.id} item={item} />)}
             </div>
             {filtered.length === 0 && (

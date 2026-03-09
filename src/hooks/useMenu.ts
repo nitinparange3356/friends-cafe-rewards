@@ -8,32 +8,61 @@ export const useMenu = () => {
   const [loading, setLoading] = useState(true);
 
   const fetchMenu = useCallback(async () => {
-    const { data } = await supabase.from("menu_items").select("*").order("created_at", { ascending: true });
-    if (data) {
-      setMenuItems(data.map(d => ({
-        id: d.id,
-        name: d.name,
-        description: d.description,
-        price: d.price,
-        actual_price: d.actual_price,
-        offer: d.offer,
-        category: d.category,
-        veg_type: d.veg_type as MenuItem["veg_type"],
-        image: d.image,
-        available: d.available,
-      })));
+    try {
+      const { data, error } = await supabase.from("menu_items").select("*").order("created_at", { ascending: true });
+      console.log("Menu fetch result:", { data, error });
+      if (error) {
+        console.error("Error fetching menu:", error);
+        return;
+      }
+      if (data) {
+        console.log("Menu items count:", data.length);
+        setMenuItems(data.map(d => ({
+          id: d.id,
+          name: d.name,
+          description: d.description,
+          price: d.price,
+          actual_price: d.actual_price,
+          offer: d.offer,
+          category: d.category,
+          veg_type: d.veg_type as MenuItem["veg_type"],
+          image: d.image,
+          available: d.available,
+        })));
+      }
+    } catch (err) {
+      console.error("Error in fetchMenu:", err);
     }
-    setLoading(false);
   }, []);
 
   const fetchCategories = useCallback(async () => {
-    const { data } = await supabase.from("categories").select("*").order("sort_order", { ascending: true });
-    if (data) setCategories(data.map(c => c.name));
+    try {
+      const { data, error } = await supabase.from("categories").select("*").order("sort_order", { ascending: true });
+      if (error) {
+        console.error("Error fetching categories:", error);
+        return;
+      }
+      if (data) setCategories(data.map(c => c.name));
+    } catch (err) {
+      console.error("Error in fetchCategories:", err);
+    }
   }, []);
 
   useEffect(() => {
-    fetchMenu();
-    fetchCategories();
+    let isMounted = true;
+
+    const loadData = async () => {
+      await Promise.all([fetchMenu(), fetchCategories()]);
+      if (isMounted) {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+
+    return () => {
+      isMounted = false;
+    };
   }, [fetchMenu, fetchCategories]);
 
   return { menuItems, categories, loading, refetchMenu: fetchMenu, refetchCategories: fetchCategories };

@@ -86,9 +86,17 @@ const AdminDashboard = () => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log("🚀 Admin login form submitted");
     setLoginLoading(true);
-    await adminLogin(email, password);
+    console.log("⏳ Calling adminLogin...");
+    const success = await adminLogin(email, password);
+    console.log("✅ adminLogin result:", success);
     setLoginLoading(false);
+    if (success) {
+      console.log("✨ Admin login successful");
+      setEmail("");
+      setPassword("");
+    }
   };
 
   // === Menu ===
