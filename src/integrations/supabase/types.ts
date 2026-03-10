@@ -187,6 +187,7 @@ export type Database = {
           email: string
           id: string
           name: string
+          phone_number: string | null
           reward_points: number
         }
         Insert: {
@@ -194,6 +195,7 @@ export type Database = {
           email: string
           id: string
           name: string
+          phone_number?: string | null
           reward_points?: number
         }
         Update: {
@@ -201,6 +203,7 @@ export type Database = {
           email?: string
           id?: string
           name?: string
+          phone_number?: string | null
           reward_points?: number
         }
         Relationships: []

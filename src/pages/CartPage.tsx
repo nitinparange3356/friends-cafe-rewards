@@ -1,7 +1,7 @@
+import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
-import { useNavigate } from "react-router-dom";
 import { Trash2, Plus, Minus, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -12,12 +12,16 @@ const CartPage = () => {
 
   const handlePlaceOrder = async () => {
     if (!user) { navigate("/login"); return; }
-    await placeOrder({
-      items: items.map(i => ({ menu_item_id: i.menuItem.id, name: i.menuItem.name, quantity: i.quantity, price: i.menuItem.price })),
-      total_amount: totalAmount,
-    });
-    clearCart();
-    navigate("/dashboard");
+    try {
+      await placeOrder({
+        items: items.map(i => ({ menu_item_id: i.menuItem.id, name: i.menuItem.name, quantity: i.quantity, price: i.menuItem.price })),
+        total_amount: totalAmount,
+      });
+      clearCart();
+      navigate("/dashboard");
+    } catch (error) {
+      console.error("Order error:", error);
+    }
   };
 
   if (items.length === 0) {

@@ -2,12 +2,18 @@ import Navbar from "@/components/Navbar";
 import { useAuth } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
-import { Award, Package, User, Star } from "lucide-react";
+import { Award, Package, User, Star, LogOut } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 const DashboardPage = () => {
-  const { user, orders } = useAuth();
+  const { user, orders, logout } = useAuth();
   const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
+  };
 
   useEffect(() => {
     if (!user) navigate("/login");
@@ -15,7 +21,7 @@ const DashboardPage = () => {
 
   if (!user) return null;
 
-  const userOrders = orders.filter(o => o.user_id === user.id);
+  const userOrders = (orders || []).filter(o => o.user_id === user.id);
 
   return (
     <div className="min-h-screen bg-background">
@@ -30,11 +36,24 @@ const DashboardPage = () => {
             <div className="flex-1 min-w-0">
               <h1 className="font-display text-lg font-bold truncate">{user.name}</h1>
               <p className="text-muted-foreground text-xs truncate">{user.email}</p>
+              {user.phone_number && <p className="text-muted-foreground text-xs truncate">{user.phone_number}</p>}
             </div>
-            <div className="flex items-center gap-1.5 bg-secondary/10 px-3 py-1.5 rounded-lg flex-shrink-0">
-              <Award className="h-4 w-4 text-secondary" />
-              <span className="font-bold text-sm">{user.reward_points}</span>
-              <span className="text-[10px] text-muted-foreground">pts</span>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <div className="flex items-center gap-1.5 bg-secondary/10 px-3 py-1.5 rounded-lg">
+                <Award className="h-4 w-4 text-secondary" />
+                <span className="font-bold text-sm">{user.reward_points}</span>
+                <span className="text-[10px] text-muted-foreground">pts</span>
+              </div>
+              <Button
+                onClick={handleLogout}
+                variant="ghost"
+                size="sm"
+                className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                title="Logout"
+              >
+                <LogOut className="h-4 w-4 mr-1" />
+                Logout
+              </Button>
             </div>
           </div>
         </div>
@@ -69,7 +88,7 @@ const DashboardPage = () => {
                   </div>
                 </div>
                 <div className="space-y-0.5">
-                  {order.items.map((item, idx) => (
+                  {(order.order_items || []).map((item, idx) => (
                     <div key={idx} className="flex justify-between text-xs">
                       <span className="text-muted-foreground">{item.name} × {item.quantity}</span>
                       <span>₹{item.price * item.quantity}</span>
