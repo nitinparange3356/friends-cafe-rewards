@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode, useCa
 import { User, Order, OrderItem } from "@/types";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { apiPost } from "@/lib/api";
 import type { User as SupaUser } from "@supabase/supabase-js";
 
 interface AuthContextType {
@@ -9,8 +10,8 @@ interface AuthContextType {
   isAdmin: boolean;
   orders: Order[];
   loading: boolean;
-  login: (email: string, password: string) => Promise<boolean>;
-  signup: (name: string, email: string, password: string) => Promise<boolean>;
+  login: (emailOrPhone: string, password: string) => Promise<boolean>;
+  signup: (name: string, email: string, password: string, phone?: string) => Promise<boolean>;
   adminLogin: (email: string, password: string) => Promise<boolean>;
   logout: () => Promise<void>;
   placeOrder: (order: { items: OrderItem[]; total_amount: number }) => Promise<void>;
@@ -30,11 +31,40 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+  const [authInitialized, setAuthInitialized] = useState(false);
 
-  const fetchProfile = async (supaUser: SupaUser) => {
-    const { data } = await supabase.from("profiles").select("*").eq("id", supaUser.id).single();
-    if (data) {
-      setUser({ id: data.id, name: data.name, email: data.email, reward_points: data.reward_points, created_at: data.created_at });
+  const fetchProfile = async (token: string) => {
+    try {
+      console.log("👤 [fetchProfile] START - Fetching profile via API");
+      console.log("👤 [fetchProfile] Got token:", token?.substring(0, 20) + "...");
+      
+      if (!token) {
+        console.error("❌ [fetchProfile] No auth token available");
+        return;
+      }
+      
+      console.log("👤 [fetchProfile] Calling /api/profile...");
+      // Call backend API instead of direct Supabase query
+      const response = await apiPost('/api/profile', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      console.log("👤 [fetchProfile] Response status:", response.status);
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("❌ [fetchProfile] API error:", errorData.error);
+        return;
+      }
+
+      const data = await response.json();
+      console.log("👤 [fetchProfile] Got profile data:", data);
+      console.log("👤 [fetchProfile] Setting user state...");
+      setUser(data);
+      console.log("✅ [fetchProfile] DONE - Profile loaded:", data.name);
+    } catch (err) {
+      console.error("💥 [fetchProfile] Exception:", err);
     }
   };
 
@@ -44,45 +74,92 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return !!data;
   };
 
-  const fetchOrders = useCallback(async (userId?: string, admin?: boolean) => {
-    let query = supabase.from("orders").select("*").order("created_at", { ascending: false });
-    // RLS handles filtering - admins see all, users see own
-    const { data: ordersData } = await query;
-    if (!ordersData) return;
+  const fetchOrders = useCallback(async (token?: string) => {
+    try {
+      console.log("📦 [fetchOrders] START - Fetching orders via API");
+      
+      let authToken = token;
+      if (!authToken) {
+        console.log("📦 [fetchOrders] No token provided, attempting getSession...");
+        const { data: { session } } = await supabase.auth.getSession();
+        authToken = session?.access_token;
+      }
+      console.log("📦 [fetchOrders] Got token:", authToken?.substring(0, 20) + "...");
+      
+      if (!authToken) {
+        console.error("❌ [fetchOrders] No auth token available");
+        return;
+      }
+      
+      console.log("📦 [fetchOrders] Calling /api/orders...");
+      // Call backend API
+      const response = await apiPost('/api/orders', {
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+        },
+      });
 
-    // Fetch order items for all orders
-    const orderIds = ordersData.map(o => o.id);
-    if (orderIds.length === 0) { setOrders([]); return; }
-    
-    const { data: itemsData } = await supabase.from("order_items").select("*").in("order_id", orderIds);
-    
-    const mapped: Order[] = ordersData.map(o => ({
-      id: o.id,
-      user_id: o.user_id,
-      user_name: o.user_name,
-      email: o.email,
-      total_amount: o.total_amount,
-      status: o.status as Order["status"],
-      points_earned: o.points_earned,
-      created_at: o.created_at,
-      items: (itemsData || []).filter(i => i.order_id === o.id).map(i => ({
-        menu_item_id: i.menu_item_id,
-        name: i.name,
-        quantity: i.quantity,
-        price: i.price,
-      })),
-    }));
-    setOrders(mapped);
+      console.log("📦 [fetchOrders] Response status:", response.status);
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("❌ [fetchOrders] API error:", errorData.error);
+        return;
+      }
+
+      const data = await response.json();
+      console.log("📦 [fetchOrders] Got orders data, count:", data.length);
+      console.log("📦 [fetchOrders] Setting orders state...");
+      setOrders(data);
+      console.log("✅ [fetchOrders] DONE - Fetched", data.length, "orders");
+    } catch (err) {
+      console.error("💥 [fetchOrders] Exception:", err);
+    }
   }, []);
 
   const refreshOrders = useCallback(async () => {
     await fetchOrders();
   }, [fetchOrders]);
 
-  const fetchAllUsers = useCallback(async () => {
-    const { data } = await supabase.from("profiles").select("*").order("created_at", { ascending: false });
-    if (data) {
-      setAllUsers(data.map(d => ({ id: d.id, name: d.name, email: d.email, reward_points: d.reward_points, created_at: d.created_at })));
+  const fetchAllUsers = useCallback(async (token?: string) => {
+    try {
+      console.log("👥 [fetchAllUsers] START - Fetching all users via API");
+      
+      let authToken = token;
+      if (!authToken) {
+        console.log("👥 [fetchAllUsers] No token provided, attempting getSession...");
+        const { data: { session } } = await supabase.auth.getSession();
+        authToken = session?.access_token;
+      }
+      console.log("👥 [fetchAllUsers] Got token:", authToken?.substring(0, 20) + "...");
+      
+      if (!authToken) {
+        console.error("❌ [fetchAllUsers] No auth token available");
+        return;
+      }
+      
+      console.log("👥 [fetchAllUsers] Calling /api/users...");
+      // Call backend API
+      const response = await apiPost('/api/users', {
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+        },
+      });
+
+      console.log("👥 [fetchAllUsers] Response status:", response.status);
+      if (!response.ok) {
+        // Not an admin, silently fail
+        console.log("👥 [fetchAllUsers] (Expected) User is not admin - 403");
+        return;
+      }
+
+      const data = await response.json();
+      console.log("👥 [fetchAllUsers] Got users data, count:", data.length);
+      console.log("👥 [fetchAllUsers] Setting allUsers state...");
+      setAllUsers(data);
+      console.log("✅ [fetchAllUsers] DONE - Fetched", data.length, "users");
+    } catch (err) {
+      console.log("⚠️ [fetchAllUsers] Exception (non-admin user):", err.message);
+      // Silently fail for non-admins
     }
   }, []);
 
@@ -92,95 +169,194 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // Init auth
   useEffect(() => {
+    let isMounted = true;
+    let isAuthListenerSetup = false;
+    
     const init = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        await fetchProfile(session.user);
-        const admin = await checkAdmin(session.user.id);
-        await fetchOrders();
-        await fetchAllUsers();
+      try {
+        console.log("🔐 [AuthContext] Initializing auth session...");
+        
+        // Debug: Check localStorage before getSession
+        const allLocalStorageKeys = Object.keys(localStorage);
+        // Look for the actual Supabase auth token key (includes project ID)
+        const authTokenKeys = allLocalStorageKeys.filter(k => k.includes('auth-token'));
+        console.log("🔑 [AuthContext] Auth token keys found:", authTokenKeys);
+        
+        // Don't use getSession() - it hangs. Let the listener handle auth restoration.
+        // The listener will fire immediately if there's a persisted session.
+      } catch (err) {
+        console.error("💥 [AuthContext] Error during init:", err);
       }
-      setLoading(false);
     };
+    
     init();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log("🔄 [AuthContext] onAuthStateChange - Event:", event, "Session:", session ? `YES ✅` : "NO ❌");
+      
+      // Skip TOKEN_REFRESHED to avoid infinite loops
+      if (event === "TOKEN_REFRESHED") {
+        console.log("⏭️ [AuthContext] Skipping TOKEN_REFRESHED event");
+        return;
+      }
+      
       if (session?.user) {
-        await fetchProfile(session.user);
-        const admin = await checkAdmin(session.user.id);
-        await fetchOrders();
-        await fetchAllUsers();
+        console.log("✅ [AuthContext] User authenticated:", session.user.id);
+        const token = session.access_token;
+        console.log("✅ [AuthContext] Token available:", token?.substring(0, 20) + "...");
+        console.log("📍 [AuthContext] Starting data fetch sequence...");
+        
+        // Fetch data immediately - backend API is fast
+        console.log("📍 [AuthContext] Step 1: Calling fetchProfile...");
+        await fetchProfile(token);
+        console.log("📍 [AuthContext] Step 2: fetchProfile done, calling fetchOrders...");
+        
+        await fetchOrders(token);
+        console.log("📍 [AuthContext] Step 3: fetchOrders done, calling fetchAllUsers...");
+        
+        await fetchAllUsers(token);
+        console.log("📍 [AuthContext] Step 4: fetchAllUsers done, checking admin...");
+        
+        // Check admin status in background (non-blocking)
+        checkAdmin(session.user.id).catch(() => {});
+        console.log("📍 [AuthContext] Step 5: All fetches done, checking isMounted...");
+        
+        if (isMounted) {
+          console.log("📍 [AuthContext] Step 6: isMounted=true, setting authInitialized=true, loading=false");
+          setAuthInitialized(true);
+          setLoading(false);
+          console.log("✅ [AuthContext] COMPLETE - Auth initialized and loading set to false");
+        } else {
+          console.log("⚠️ [AuthContext] isMounted=false, skipping state update");
+        }
       } else {
-        setUser(null);
-        setIsAdmin(false);
-        setOrders([]);
-        setAllUsers([]);
+        console.log("🚪 [AuthContext] User logged out");
+        if (isMounted) {
+          console.log("🚪 [AuthContext] Clearing user state...");
+          setUser(null);
+          setIsAdmin(false);
+          setOrders([]);
+          setAllUsers([]);
+          setAuthInitialized(true);
+          setLoading(false);
+          console.log("✅ [AuthContext] User state cleared");
+        }
       }
     });
-    return () => subscription.unsubscribe();
-  }, []);
+    
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
+  }, [fetchOrders, fetchAllUsers]);
 
-  // Poll orders every 5s
+  // Poll orders every 5s when user is logged in
   useEffect(() => {
     if (!user) return;
-    const interval = setInterval(async () => {
-      await fetchOrders();
-      // Refresh user profile for points
-      const { data } = await supabase.from("profiles").select("*").eq("id", user.id).single();
-      if (data) {
-        setUser(prev => prev ? { ...prev, reward_points: data.reward_points } : prev);
-      }
-      await fetchAllUsers();
-    }, 5000);
-    return () => clearInterval(interval);
+    
+    // Don't poll - just fetch once
+    fetchOrders();
+    fetchAllUsers();
   }, [user, fetchOrders, fetchAllUsers]);
 
-  const signup = async (name: string, email: string, password: string) => {
-    const { data, error } = await supabase.auth.signUp({
-      email, password,
-      options: { data: { name } }
-    });
-    if (error) { toast.error(error.message); return false; }
-    if (data.user) {
-      toast.success("Account created! Please check your email to verify.");
-      return true;
+  const signup = async (name: string, email: string, password: string, phone?: string) => {
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email, password,
+        options: { data: { name, phone_number: phone || null } }
+      });
+      if (error) { toast.error(error.message); return false; }
+      if (data.user) {
+        // Update profiles table with phone number - wait for profile to be created
+        if (phone) {
+          // Wait a moment for the trigger to create the profile row
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+          const { error: updateError } = await supabase
+            .from('profiles')
+            .update({ phone_number: phone })
+            .eq('id', data.user.id);
+          
+          if (updateError) {
+            console.error("Error updating phone:", updateError);
+            // Try insert if update fails (in case RLS prevents update)
+            const { error: insertError } = await supabase
+              .from('profiles')
+              .insert({
+                id: data.user.id,
+                name,
+                email,
+                phone_number: phone,
+                reward_points: 0
+              });
+            if (insertError) console.error("Error inserting phone:", insertError);
+          }
+        }
+        toast.success("Account created! Please check your email to verify.");
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error("Signup error:", err);
+      toast.error("Signup failed");
+      return false;
     }
-    return false;
   };
 
-  const login = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) { toast.error(error.message); return false; }
-    toast.success("Welcome back!");
-    return true;
+  const login = async (emailOrPhone: string, password: string) => {
+    try {
+      let email = emailOrPhone;
+      
+      // Check if input is a phone number (contains digits and optional +)
+      if (/^[+]?[0-9]{10,}$/.test(emailOrPhone.replace(/\s/g, ''))) {
+        // It's a phone number - normalize it (remove spaces) and look up the email
+        const normalizedPhone = emailOrPhone.replace(/\s/g, '');
+        const { data: profiles, error: lookupError } = await supabase
+          .from('profiles')
+          .select('email')
+          .eq('phone_number', normalizedPhone)
+          .single();
+        
+        if (lookupError || !profiles) {
+          console.error("Phone lookup error:", lookupError);
+          toast.error("No account found with this phone number");
+          return false;
+        }
+        email = profiles.email;
+        console.log("✅ Found email from phone number:", email);
+      }
+      
+      const { error, data } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        toast.error(error.message);
+        return false;
+      }
+      toast.success("Welcome back!");
+      return true;
+    } catch (err) {
+      console.error("Login error:", err);
+      toast.error("Login failed");
+      return false;
+    }
   };
 
   const adminLogin = async (email: string, password: string) => {
-    console.log("🔐 Admin login attempt:", email);
     try {
-      console.log("📧 Signing in with email/password...");
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      console.log("✅ Sign in response:", { data: !!data, error });
       
       if (error) {
-        console.error("❌ Sign in error:", error.message);
         toast.error(error.message);
         return false;
       }
       
       if (data.user) {
-        console.log("👤 User signed in:", data.user.id);
-        console.log("🔍 Checking admin role...");
         const admin = await checkAdmin(data.user.id);
-        console.log("✅ Admin check result:", admin);
         
         if (!admin) {
-          console.warn("⚠️ User is not an admin");
           toast.error("You are not an admin");
           await supabase.auth.signOut();
           return false;
         }
-        console.log("✅ Admin verified!");
         toast.success("Admin logged in");
         return true;
       }
@@ -192,12 +368,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const logout = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-    setIsAdmin(false);
-    setOrders([]);
-    setAllUsers([]);
-    toast.success("Logged out");
+    try {
+      console.log("🚪 [AuthContext] Logging out user...");
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error("❌ [AuthContext] Error during logout:", error);
+        toast.error("Logout failed: " + error.message);
+        return;
+      }
+      setUser(null);
+      setIsAdmin(false);
+      setOrders([]);
+      setAllUsers([]);
+      console.log("✅ [AuthContext] User logged out successfully");
+      toast.success("Logged out");
+    } catch (err) {
+      toast.error("Logout failed");
+    }
   };
 
   const placeOrder = async (orderData: { items: OrderItem[]; total_amount: number }) => {

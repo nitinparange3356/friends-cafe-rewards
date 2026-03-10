@@ -44,6 +44,7 @@ export interface User {
   id: string;
   name: string;
   email: string;
+  phone_number?: string | null;
   reward_points: number;
   created_at: string;
 }

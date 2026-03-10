@@ -25,7 +25,7 @@ const ConfirmEmailPage = () => {
         // Verify the OTP token
         const { error } = await supabase.auth.verifyOtp({
           token_hash,
-          type: type as any,
+          type: type as "signup" | "invite" | "magiclink" | "recovery" | "email_change",
         });
 
         if (error) {
@@ -41,9 +41,9 @@ const ConfirmEmailPage = () => {
         setTimeout(() => {
           navigate("/dashboard");
         }, 2000);
-      } catch (err: any) {
+      } catch (err: unknown) {
         setStatus("error");
-        setMessage(err.message || "An error occurred");
+        setMessage((err as Error).message || "An error occurred");
       }
     };
 

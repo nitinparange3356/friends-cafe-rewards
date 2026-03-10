@@ -8,8 +8,9 @@ import { Coffee } from "lucide-react";
 const LoginPage = () => {
   const [isSignup, setIsSignup] = useState(false);
   const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
+  const [emailOrPhone, setEmailOrPhone] = useState("");
   const [password, setPassword] = useState("");
+  const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);
   const { login, signup } = useAuth();
   const navigate = useNavigate();
@@ -19,9 +20,11 @@ const LoginPage = () => {
     setLoading(true);
     try {
       if (isSignup) {
-        if (await signup(name, email, password)) navigate("/");
+        // Normalize phone number (remove spaces)
+        const normalizedPhone = phone.replace(/\s/g, '');
+        if (await signup(name, emailOrPhone, password, normalizedPhone || undefined)) navigate("/");
       } else {
-        if (await login(email, password)) navigate("/");
+        if (await login(emailOrPhone, password)) navigate("/");
       }
     } finally {
       setLoading(false);
@@ -48,9 +51,26 @@ const LoginPage = () => {
             </div>
           )}
           <div>
-            <label className="text-sm font-medium mb-1.5 block">Email</label>
-            <Input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" required />
+            <label className="text-sm font-medium mb-1.5 block">{isSignup ? "Email" : "Email or Phone Number"}</label>
+            <Input 
+              type={isSignup ? "email" : "text"}
+              value={emailOrPhone} 
+              onChange={e => setEmailOrPhone(e.target.value)} 
+              placeholder={isSignup ? "you@example.com" : "you@example.com or +91 9876543210"} 
+              required 
+            />
           </div>
+          {isSignup && (
+            <div>
+              <label className="text-sm font-medium mb-1.5 block">Phone Number</label>
+              <Input 
+                type="tel"
+                value={phone} 
+                onChange={e => setPhone(e.target.value)} 
+                placeholder="+91 9876543210" 
+              />
+            </div>
+          )}
           <div>
             <label className="text-sm font-medium mb-1.5 block">Password</label>
             <Input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" required minLength={6} />

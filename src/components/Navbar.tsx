@@ -1,14 +1,8 @@
 import { Link, useLocation } from "react-router-dom";
-import { ShoppingCart, User, Menu, X, LogOut } from "lucide-react";
+import { ShoppingCart, User, Menu, X } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { useState } from "react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 
 const Navbar = () => {
   const { totalItems } = useCart();
@@ -56,22 +50,9 @@ const Navbar = () => {
 
         <div className="flex items-center gap-1">
           {user ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className="p-2 text-primary-foreground hover:bg-primary-foreground/10 rounded-lg">
-                  <User className="h-5 w-5" />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem asChild>
-                  <Link to="/dashboard">Dashboard</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={logout}>
-                  <LogOut className="h-4 w-4 mr-2" />
-                  Logout
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <Link to="/dashboard" className="p-2 text-primary-foreground hover:bg-primary-foreground/10 rounded-lg transition-colors">
+              <User className="h-5 w-5" />
+            </Link>
           ) : (
             <Link to="/login" className="hidden md:block">
               <span className="bg-secondary text-secondary-foreground text-sm font-bold px-3 py-1.5 rounded-md">Login</span>

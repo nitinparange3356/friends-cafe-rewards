@@ -54,6 +54,10 @@ const AdminDashboard = () => {
 
   // Analytics
   const analytics = useMemo(() => {
+    if (!orders || orders.length === 0) {
+      return { totalRevenue: 0, totalOrders: 0, avgOrderValue: 0, totalPoints: 0, statusData: [], topItems: [], revenueByDay: [] };
+    }
+
     const approved = orders.filter(o => o.status === "Approved");
     const totalRevenue = approved.reduce((s, o) => s + o.total_amount, 0);
     const totalOrders = orders.length;
@@ -67,7 +71,7 @@ const AdminDashboard = () => {
     ].filter(d => d.value > 0);
 
     const itemMap: Record<string, { name: string; qty: number; revenue: number }> = {};
-    orders.forEach(o => o.items.forEach(it => {
+    orders.forEach(o => (o.order_items || []).forEach(it => {
       if (!itemMap[it.name]) itemMap[it.name] = { name: it.name, qty: 0, revenue: 0 };
       itemMap[it.name].qty += it.quantity;
       itemMap[it.name].revenue += it.price * it.quantity;
@@ -316,7 +320,7 @@ const AdminDashboard = () => {
                   <div className="min-w-0"><p className="font-semibold text-sm truncate">{order.user_name}</p><p className="text-[10px] text-muted-foreground truncate">{order.email} • {new Date(order.created_at).toLocaleString("en-IN")}</p></div>
                   <Badge variant={order.status === "Approved" ? "default" : order.status === "Rejected" ? "destructive" : "secondary"} className="text-[10px] flex-shrink-0">{order.status}</Badge>
                 </div>
-                <div className="space-y-0.5 mb-2">{order.items.map((item, i) => <div key={i} className="flex justify-between text-xs text-muted-foreground"><span>{item.name} × {item.quantity}</span><span>₹{item.price * item.quantity}</span></div>)}</div>
+                <div className="space-y-0.5 mb-2">{(order.order_items || []).map((item, i) => <div key={i} className="flex justify-between text-xs text-muted-foreground"><span>{item.name} × {item.quantity}</span><span>₹{item.price * item.quantity}</span></div>)}</div>
                 <div className="border-t pt-2 flex items-center justify-between gap-2">
                   <span className="font-bold text-sm">₹{order.total_amount}</span>
                   {order.status === "Pending" && (
