@@ -75,6 +75,7 @@ export default async (req: VercelRequest, res: VercelResponse) => {
     return res.status(200).json(mapped);
   } catch (err) {
     console.error('Orders endpoint error:', err);
-    return res.status(500).json({ error: 'Internal server error' });
+    const errorMessage = err instanceof Error ? err.message : 'Internal server error';
+    return res.status(500).json({ error: errorMessage });
   }
 };

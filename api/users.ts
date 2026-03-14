@@ -52,6 +52,7 @@ export default async (req: VercelRequest, res: VercelResponse) => {
     );
   } catch (err) {
     console.error('Users endpoint error:', err);
-    return res.status(500).json({ error: 'Internal server error' });
+    const errorMessage = err instanceof Error ? err.message : 'Internal server error';
+    return res.status(500).json({ error: errorMessage });
   }
 };
