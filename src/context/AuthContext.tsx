@@ -36,6 +36,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const fetchProfile = async (token: string) => {
     try {
       if (!token) {
+        console.log("No token available");
         return;
       }
       
@@ -52,7 +53,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
 
       const data = await response.json();
+      console.log("Profile data received:", data);
       setUser(data);
+      console.log("User state updated with profile");
     } catch (err) {
       console.error("Profile fetch exception:", err);
     }
