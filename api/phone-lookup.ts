@@ -1,5 +1,5 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import { supabase } from '../utils/supabase.js';
+import { supabase } from './utils/supabase.js';
 
 export default async (req: VercelRequest, res: VercelResponse) => {
   if (req.method !== 'POST') {
