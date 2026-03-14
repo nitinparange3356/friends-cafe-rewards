@@ -1,5 +1,5 @@
 import { VerifyJwtResponse } from '@supabase/supabase-js';
-import { supabase } from './supabase';
+import { supabase } from './supabase.js';
 
 export async function verifyAuthToken(token: string): Promise<{ userId: string; error?: string }> {
   try {
