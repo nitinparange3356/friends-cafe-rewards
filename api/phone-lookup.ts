@@ -40,6 +40,7 @@ export default async (req: VercelRequest, res: VercelResponse) => {
     res.json({ email: profiles.email });
   } catch (err) {
     console.error('Phone lookup endpoint error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    const errorMessage = err instanceof Error ? err.message : 'Internal server error';
+    res.status(500).json({ error: errorMessage });
   }
 };
