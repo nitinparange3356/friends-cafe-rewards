@@ -35,36 +35,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const fetchProfile = async (token: string) => {
     try {
-      console.log("👤 [fetchProfile] START - Fetching profile via API");
-      console.log("👤 [fetchProfile] Got token:", token?.substring(0, 20) + "...");
-      
       if (!token) {
-        console.error("❌ [fetchProfile] No auth token available");
         return;
       }
       
-      console.log("👤 [fetchProfile] Calling /api/profile...");
-      // Call backend API instead of direct Supabase query
       const response = await apiPost('/api/profile', {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
       });
 
-      console.log("👤 [fetchProfile] Response status:", response.status);
       if (!response.ok) {
         const errorData = await response.json();
-        console.error("❌ [fetchProfile] API error:", errorData.error);
+        console.error("Profile fetch error:", errorData.error);
         return;
       }
 
       const data = await response.json();
-      console.log("👤 [fetchProfile] Got profile data:", data);
-      console.log("👤 [fetchProfile] Setting user state...");
       setUser(data);
-      console.log("✅ [fetchProfile] DONE - Profile loaded:", data.name);
     } catch (err) {
-      console.error("💥 [fetchProfile] Exception:", err);
+      console.error("Profile fetch exception:", err);
     }
   };
 
@@ -261,37 +251,35 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signup = async (name: string, email: string, password: string, phone?: string) => {
     try {
-      const { data, error } = await supabase.auth.signUp({
-        email, password,
-        options: { data: { name, phone_number: phone || null } }
-      });
-      if (error) { toast.error(error.message); return false; }
-      if (data.user) {
-        // Update profiles table with phone number - wait for profile to be created
-        if (phone) {
-          // Wait a moment for the trigger to create the profile row
-          await new Promise(resolve => setTimeout(resolve, 500));
-          
-          const { error: updateError } = await supabase
-            .from('profiles')
-            .update({ phone_number: phone })
-            .eq('id', data.user.id);
-          
-          if (updateError) {
-            console.error("Error updating phone:", updateError);
-            // Try insert if update fails (in case RLS prevents update)
-            const { error: insertError } = await supabase
-              .from('profiles')
-              .insert({
-                id: data.user.id,
-                name,
-                email,
-                phone_number: phone,
-                reward_points: 0
-              });
-            if (insertError) console.error("Error inserting phone:", insertError);
-          }
+      // Normalize phone: remove all non-digits for consistent storage
+      let normalizedPhone = null;
+      if (phone && phone.trim()) {
+        normalizedPhone = phone.replace(/\D/g, ''); // Remove all non-digits (+, spaces, etc.)
+        // Keep only the last 10 digits for Indian numbers (or full if shorter)
+        if (normalizedPhone.length > 10) {
+          normalizedPhone = normalizedPhone.slice(-10);
         }
+      }
+      
+      // Pass normalized phone_number in auth metadata - the handle_new_user() trigger will capture it
+      // and store it in the profiles table automatically
+      const { data, error } = await supabase.auth.signUp({
+        email, 
+        password,
+        options: { 
+          data: { 
+            name, 
+            phone_number: normalizedPhone 
+          } 
+        }
+      });
+      
+      if (error) { 
+        toast.error(error.message); 
+        return false; 
+      }
+      
+      if (data.user) {
         toast.success("Account created! Please check your email to verify.");
         return true;
       }
@@ -309,21 +297,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       // Check if input is a phone number (contains digits and optional +)
       if (/^[+]?[0-9]{10,}$/.test(emailOrPhone.replace(/\s/g, ''))) {
-        // It's a phone number - normalize it (remove spaces) and look up the email
-        const normalizedPhone = emailOrPhone.replace(/\s/g, '');
-        const { data: profiles, error: lookupError } = await supabase
-          .from('profiles')
-          .select('email')
-          .eq('phone_number', normalizedPhone)
-          .single();
-        
-        if (lookupError || !profiles) {
-          console.error("Phone lookup error:", lookupError);
-          toast.error("No account found with this phone number");
+        try {
+          // Use backend API for phone lookup (has proper database access, bypasses RLS)
+          const response = await apiPost('/api/phone-lookup', {
+            body: JSON.stringify({ phone_number: emailOrPhone })
+          });
+
+          if (!response.ok) {
+            const error = await response.json();
+            console.error("Phone lookup error:", error);
+            toast.error(error.error || "No account found with this phone number");
+            return false;
+          }
+
+          const data = await response.json();
+          email = data.email;
+        } catch (err) {
+          console.error("Phone lookup request failed:", err);
+          toast.error("Login service temporarily unavailable");
           return false;
         }
-        email = profiles.email;
-        console.log("✅ Found email from phone number:", email);
       }
       
       const { error, data } = await supabase.auth.signInWithPassword({ email, password });
