@@ -1,6 +1,6 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import { supabase } from '../utils/supabase.js';
-import { verifyAuthToken, getAuthToken } from '../utils/auth.js';
+import { supabase } from './utils/supabase.js';
+import { verifyAuthToken, getAuthToken } from './utils/auth.js';
 
 export default async (req: VercelRequest, res: VercelResponse) => {
   // Only allow POST
