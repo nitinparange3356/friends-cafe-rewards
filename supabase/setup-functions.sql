@@ -19,16 +19,37 @@ AS $$
   )
 $$;
 
--- Trigger to create profile on signup
+-- Trigger to create profile on signup with phone number normalization
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
 AS $$
+DECLARE
+  v_phone TEXT;
 BEGIN
-  INSERT INTO public.profiles (id, name, email)
-  VALUES (NEW.id, COALESCE(NEW.raw_user_meta_data->>'name', ''), NEW.email);
+  -- Extract phone from metadata
+  v_phone := NULLIF(NEW.raw_user_meta_data->>'phone_number', '');
+  
+  -- Normalize: remove all non-digits, keep only last 10 digits for Indian format
+  IF v_phone IS NOT NULL THEN
+    v_phone := regexp_replace(v_phone, '[^0-9]', '', 'g');
+    IF length(v_phone) > 10 THEN
+      v_phone := RIGHT(v_phone, 10);
+    END IF;
+    IF v_phone = '' THEN
+      v_phone := NULL;
+    END IF;
+  END IF;
+  
+  INSERT INTO public.profiles (id, name, email, phone_number)
+  VALUES (
+    NEW.id, 
+    COALESCE(NEW.raw_user_meta_data->>'name', ''), 
+    NEW.email,
+    v_phone
+  );
   RETURN NEW;
 END;
 $$;
