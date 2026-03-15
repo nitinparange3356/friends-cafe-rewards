@@ -18,7 +18,16 @@ const defaultCatImage = "https://images.unsplash.com/photo-1495474472287-4d71bcd
 const Index = () => {
   const [activeCategory, setActiveCategory] = useState<string>("All");
   const [vegFilter, setVegFilter] = useState<VegType | null>(null);
-  const { menuItems, categories, loading } = useMenu();
+  const { menuItems, categories, categoryMap, loading } = useMenu();
+
+  const getCategoryImage = (catName: string) => {
+    // First check if category has uploaded image
+    if (categoryMap[catName]?.image) {
+      return categoryMap[catName].image;
+    }
+    // Fall back to hardcoded images for categories without uploaded images
+    return categoryImages[catName] || defaultCatImage;
+  };
 
   const filtered = menuItems
     .filter(i => i.available)
@@ -58,7 +67,7 @@ const Index = () => {
                 activeCategory === cat ? "bg-primary/10 text-primary" : "text-muted-foreground"
               }`}
             >
-              <img src={categoryImages[cat] || defaultCatImage} alt={cat} className="w-10 h-10 rounded-full object-cover border border-border" />
+              <img src={getCategoryImage(cat)} alt={cat} className="w-10 h-10 rounded-full object-cover border border-border" />
               <span>{cat}</span>
             </button>
           ))}
@@ -97,7 +106,7 @@ const Index = () => {
               <button key={cat} onClick={() => setActiveCategory(cat)}
                 className={`w-full flex flex-col items-center gap-1 py-3 px-2 text-xs font-semibold transition-colors relative ${activeCategory === cat ? "text-primary" : "text-muted-foreground hover:text-foreground"}`}>
                 {activeCategory === cat && <div className="absolute left-0 top-1 bottom-1 w-1 bg-primary rounded-r-full" />}
-                <img src={categoryImages[cat] || defaultCatImage} alt={cat} className="w-12 h-12 rounded-full object-cover border-2 border-border" />
+                <img src={getCategoryImage(cat)} alt={cat} className="w-12 h-12 rounded-full object-cover border-2 border-border" />
                 <span>{cat}</span>
               </button>
             ))}

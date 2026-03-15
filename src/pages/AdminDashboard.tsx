@@ -21,7 +21,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 const AdminDashboard = () => {
   const { isAdmin, adminLogin, logout, orders, approveOrder, rejectOrder, adjustPoints, allUsers, loading: authLoading } = useAuth();
-  const { menuItems: menu, categories: dynamicCategories, refetchMenu, refetchCategories } = useMenu();
+  const { menuItems: menu, categories: dynamicCategories, categoryMap, refetchMenu, refetchCategories } = useMenu();
   const { offers, refetchOffers } = useOffers();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
@@ -38,6 +38,7 @@ const AdminDashboard = () => {
   // Category dialog
   const [catDialogOpen, setCatDialogOpen] = useState(false);
   const [newCatName, setNewCatName] = useState("");
+  const [catImage, setCatImage] = useState("");
   const [editingCat, setEditingCat] = useState<string | null>(null);
 
   // Offer dialog
@@ -155,16 +156,17 @@ const AdminDashboard = () => {
     const name = newCatName.trim();
     if (!name) { toast.error("Enter a category name"); return; }
     if (editingCat) {
-      await supabase.from("categories").update({ name }).eq("name", editingCat);
+      await supabase.from("categories").update({ name, image: catImage || null }).eq("name", editingCat);
       // Update menu items with old category name
       await supabase.from("menu_items").update({ category: name }).eq("category", editingCat);
-      toast.success("Category renamed");
+      toast.success("Category updated");
     } else {
-      const { error } = await supabase.from("categories").insert({ name, sort_order: dynamicCategories.length });
+      const { error } = await supabase.from("categories").insert({ name, image: catImage || null, sort_order: dynamicCategories.length });
       if (error) { toast.error(error.message); return; }
       toast.success("Category added");
     }
     setNewCatName("");
+    setCatImage("");
     setEditingCat(null);
     setCatDialogOpen(false);
     refetchCategories();
@@ -414,20 +416,37 @@ const AdminDashboard = () => {
           <TabsContent value="categories">
             <div className="flex justify-between items-center mb-3">
               <p className="text-muted-foreground text-xs">{dynamicCategories.length} categories</p>
-              <Button size="sm" onClick={() => { setEditingCat(null); setNewCatName(""); setCatDialogOpen(true); }} className="gap-1 h-7 text-xs"><Plus className="h-3.5 w-3.5" /> Add</Button>
+              <Button size="sm" onClick={() => { setEditingCat(null); setNewCatName(""); setCatImage(""); setCatDialogOpen(true); }} className="gap-1 h-7 text-xs"><Plus className="h-3.5 w-3.5" /> Add</Button>
             </div>
             <div className="space-y-2">
               {dynamicCategories.map(cat => {
                 const count = menu.filter(m => m.category === cat).length;
+                const catObj = categoryMap[cat];
                 return (
                   <div key={cat} className="bg-card rounded-xl border p-3 flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0"><FolderPlus className="h-4 w-4 text-primary" /></div>
+                    {catObj?.image ? (
+                      <img src={catObj.image} alt={cat} className="w-9 h-9 rounded-lg object-cover flex-shrink-0" />
+                    ) : (
+                      <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0"><FolderPlus className="h-4 w-4 text-primary" /></div>
+                    )}
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold text-sm">{cat}</p>
                       <p className="text-[10px] text-muted-foreground">{count} item{count !== 1 ? "s" : ""}</p>
                     </div>
                     <div className="flex gap-0.5 flex-shrink-0">
-                      <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => { setEditingCat(cat); setNewCatName(cat); setCatDialogOpen(true); }}><Edit2 className="h-3.5 w-3.5" /></Button>
+                      <Button 
+                        size="icon" 
+                        variant="ghost" 
+                        className="h-7 w-7" 
+                        onClick={() => { 
+                          setEditingCat(cat); 
+                          setNewCatName(cat); 
+                          setCatImage(catObj?.image || "");
+                          setCatDialogOpen(true); 
+                        }}
+                      >
+                        <Edit2 className="h-3.5 w-3.5" />
+                      </Button>
                       <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => deleteCategory(cat)}><Trash2 className="h-3.5 w-3.5" /></Button>
                     </div>
                   </div>
@@ -521,14 +540,27 @@ const AdminDashboard = () => {
 
       {/* Category Dialog */}
       <Dialog open={catDialogOpen} onOpenChange={setCatDialogOpen}>
-        <DialogContent className="max-w-xs mx-3">
+        <DialogContent className="max-w-sm mx-3 max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-base">{editingCat ? "Rename Category" : "Add Category"}</DialogTitle>
-            <DialogDescription className="text-xs">Enter the category name.</DialogDescription>
+            <DialogTitle className="text-base">{editingCat ? "Edit Category" : "Add Category"}</DialogTitle>
+            <DialogDescription className="text-xs">Category name and optional image for menu display.</DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
-            <Input placeholder="Category name" value={newCatName} onChange={e => setNewCatName(e.target.value)} onKeyDown={e => e.key === "Enter" && addCategory()} />
-            <Button onClick={addCategory} className="w-full" size="sm">{editingCat ? "Rename" : "Add"}</Button>
+            <Input 
+              placeholder="Category name" 
+              value={newCatName} 
+              onChange={e => setNewCatName(e.target.value)} 
+              onKeyDown={e => e.key === "Enter" && addCategory()} 
+            />
+            <div>
+              <label className="text-xs font-medium mb-2 block">Category Image (Optional)</label>
+              <ImageUpload 
+                value={catImage}
+                onChange={setCatImage}
+                bucket="menu-images"
+              />
+            </div>
+            <Button onClick={addCategory} className="w-full" size="sm">{editingCat ? "Update" : "Add"}</Button>
           </div>
         </DialogContent>
       </Dialog>

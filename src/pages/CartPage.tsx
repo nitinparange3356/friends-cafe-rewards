@@ -44,31 +44,55 @@ const CartPage = () => {
       <div className="px-3 md:px-0 md:max-w-2xl md:mx-auto py-4 md:py-8">
         <h1 className="font-display text-xl md:text-3xl font-bold mb-4">Your Cart</h1>
 
-        <div className="space-y-2">
+        {/* Cart Items - Minimal Compact Layout */}
+        <div className="space-y-2 mb-4">
           {items.map(({ menuItem, quantity }) => (
-            <div key={menuItem.id} className="flex items-center gap-3 bg-card rounded-xl p-3 border">
-              <img src={menuItem.image} alt={menuItem.name} className="w-14 h-14 rounded-lg object-cover" />
+            <div key={menuItem.id} className="flex items-center gap-2 bg-card rounded-lg border p-3 md:p-4">
+              {/* Small Image - Optional on Mobile */}
+              <img 
+                src={menuItem.image} 
+                alt={menuItem.name} 
+                className="w-12 h-12 md:w-14 md:h-14 rounded object-cover flex-shrink-0" 
+              />
+              
+              {/* Item Details */}
               <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-sm truncate">{menuItem.name}</h3>
+                <h3 className="font-semibold text-sm md:text-base truncate">{menuItem.name}</h3>
                 <p className="text-primary font-bold text-sm">₹{menuItem.price}</p>
               </div>
-              <div className="flex items-center gap-1">
-                <button onClick={() => updateQuantity(menuItem.id, quantity - 1)} className="w-7 h-7 rounded-full bg-muted flex items-center justify-center">
-                  <Minus className="h-3 w-3" />
+
+              {/* Quantity Controls */}
+              <div className="flex items-center gap-1 bg-muted rounded-lg px-2 py-1">
+                <button
+                  onClick={() => updateQuantity(menuItem.id, quantity - 1)}
+                  className="w-5 h-5 md:w-6 md:h-6 rounded flex items-center justify-center hover:bg-primary/10 text-xs"
+                >
+                  −
                 </button>
                 <span className="font-bold text-sm w-5 text-center">{quantity}</span>
-                <button onClick={() => updateQuantity(menuItem.id, quantity + 1)} className="w-7 h-7 rounded-full bg-muted flex items-center justify-center">
-                  <Plus className="h-3 w-3" />
+                <button
+                  onClick={() => updateQuantity(menuItem.id, quantity + 1)}
+                  className="w-5 h-5 md:w-6 md:h-6 rounded flex items-center justify-center hover:bg-primary/10 text-xs"
+                >
+                  +
                 </button>
               </div>
-              <p className="font-bold text-sm w-14 text-right">₹{menuItem.price * quantity}</p>
-              <button onClick={() => removeItem(menuItem.id)} className="text-destructive p-1">
+
+              {/* Total Price */}
+              <p className="font-bold text-sm md:text-base w-12 md:w-14 text-right">₹{menuItem.price * quantity}</p>
+
+              {/* Delete Button */}
+              <button
+                onClick={() => removeItem(menuItem.id)}
+                className="text-destructive p-1 flex-shrink-0 hover:bg-destructive/10 rounded transition-colors"
+              >
                 <Trash2 className="h-4 w-4" />
               </button>
             </div>
           ))}
         </div>
 
+        {/* Summary */}
         <div className="mt-4 bg-card rounded-xl border p-4 md:p-6 space-y-3">
           <div className="flex justify-between text-base md:text-lg font-bold">
             <span>Total</span>

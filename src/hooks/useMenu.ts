@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { MenuItem } from "@/types";
+import { MenuItem, Category } from "@/types";
 
 export const useMenu = () => {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
+  const [categoryMap, setCategoryMap] = useState<Record<string, Category>>({});
   const [loading, setLoading] = useState(true);
 
   const fetchMenu = useCallback(async () => {
@@ -42,7 +43,19 @@ export const useMenu = () => {
         console.error("Error fetching categories:", error);
         return;
       }
-      if (data) setCategories(data.map(c => c.name));
+      if (data) {
+        const map: Record<string, Category> = {};
+        data.forEach(cat => {
+          map[cat.name] = {
+            id: cat.id,
+            name: cat.name,
+            image: cat.image || undefined,
+            sort_order: cat.sort_order,
+          };
+        });
+        setCategoryMap(map);
+        setCategories(data.map(c => c.name));
+      }
     } catch (err) {
       console.error("Error in fetchCategories:", err);
     }
@@ -65,5 +78,5 @@ export const useMenu = () => {
     };
   }, [fetchMenu, fetchCategories]);
 
-  return { menuItems, categories, loading, refetchMenu: fetchMenu, refetchCategories: fetchCategories };
+  return { menuItems, categories, categoryMap, loading, refetchMenu: fetchMenu, refetchCategories: fetchCategories };
 };

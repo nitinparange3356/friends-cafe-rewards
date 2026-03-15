@@ -1,6 +1,14 @@
 export type VegType = "veg" | "non-veg" | "egg";
 
-// Categories are now dynamic strings managed by admin
+// Categories with optional images
+export interface Category {
+  id: string;
+  name: string;
+  image?: string;
+  sort_order: number;
+}
+
+// For backward compatibility with existing code
 export type MenuCategory = string;
 
 export interface MenuItem {
