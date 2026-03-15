@@ -62,7 +62,8 @@ export default async (req: VercelRequest, res: VercelResponse) => {
       status: o.status,
       points_earned: o.points_earned,
       created_at: o.created_at,
-      items: (itemsData || [])
+      is_redemption: o.is_redemption || false,
+      order_items: (itemsData || [])
         .filter(i => i.order_id === o.id)
         .map(i => ({
           menu_item_id: i.menu_item_id,

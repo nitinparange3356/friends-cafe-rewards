@@ -14,11 +14,15 @@ A modern web application for a coffee shop rewards program that allows users to 
 - ✅ **Order Management** - Place and track orders
 - ✅ **Menu Browsing** - View complete menu with item filtering (Veg, Non-Veg, Eggs)
 - ✅ **Shopping Cart** - Add items to cart and proceed to checkout
+- ✅ **Redeem Points** - Exchange reward points for menu items (Mojito, Fries, Burgers, Pizza, Meals)
 - ✅ **Email Verification** - Secure account setup with email confirmation
 
 ### Admin Features
 - ✅ **Admin Dashboard** - Comprehensive admin panel
-- ✅ **Order Management** - Approve/reject pending orders
+- ✅ **Order Management** - Approve/reject pending orders and redemptions 
+- ✅ **Redemption Tracking** - Visual distinction for redemption orders with yellow background
+- ✅ **Order Filtering** - Filter orders by Pending/Approved status
+- ✅ **User Search** - Search users by name or phone number
 - ✅ **Points Adjustment** - Manually adjust user reward points
 - ✅ **User Management** - View all registered users and their details
 - ✅ **Analytics** - Track orders and reward points distribution
@@ -54,6 +58,7 @@ friends-cafe-rewards/
 │   │   ├── CartPage.tsx         # Shopping cart
 │   │   ├── AdminDashboard.tsx   # Admin panel
 │   │   ├── DashboardPage.tsx    # User dashboard
+│   │   ├── RedeemPage.tsx       # Redeem points for rewards
 │   │   ├── OffersPage.tsx       # Promotions
 │   │   └── ConfirmEmailPage.tsx # Email verification
 │   │
@@ -198,6 +203,7 @@ A core feature of this system is the ability to login using phone numbers instea
 - total_amount (INTEGER)
 - status (TEXT: Pending/Approved/Rejected)
 - points_earned (INTEGER)
+- is_redemption (BOOLEAN) - Marks if order is a redemption vs purchase
 - created_at (TIMESTAMP)
 ```
 
@@ -281,7 +287,45 @@ npm run test:watch   # Run tests in watch mode
 npm run preview      # Preview production build
 ```
 
+## � Redemption System
+
+Users can now exchange their earned reward points for delicious menu items without paying cash!
+
+### Redemption Items
+| Item | Points Required |
+|------|-----------------|
+| Mojito | 300 pts |
+| Fries | 400 pts |
+| Classic Burger | 500 pts |
+| Coke + Fries | 600 pts |
+| Margarita Pizza | 750 pts |
+| Burger Meal (Burger+Fries+Coke) | 1000 pts |
+
+### How Redemption Works
+1. User navigates to `/redeem` page (accessible via Navbar)
+2. Browse available items with point requirements
+3. Click "Redeem" button (yellow when sufficient points, disabled otherwise)
+4. Points are deducted immediately from user account
+5. Redemption order sent to admin for approval
+6. Admin approves/rejects in dashboard (shown with yellow background)
+7. Admin confirms item delivery to complete the redemption
+
+### Admin Dashboard Redemption Features
+- **Visual Distinction**: Redemption orders have yellow background and "Redemption" badge
+- **Easy Filtering**: Filter orders by Pending/Approved status
+- **User Search**: Quick search by name or phone number
+- **Same Workflow**: Approve/reject redemption orders alongside regular purchases
+
 ## 📝 Recent Updates
+
+### Redeem Points Feature (v2.1)
+- ✅ Created `/redeem` page with 6 redemption items
+- ✅ Yellow "Redeem" buttons showing point costs as placeholder
+- ✅ Instant point deduction from user account
+- ✅ Redemption orders display in admin dashboard with yellow background
+- ✅ "Redemption" badge to distinguish from regular orders
+- ✅ Same approval/rejection workflow for admins
+- ✅ Points stored as negative values in `points_earned` field
 
 ### Phone Number Login Implementation (v2.0)
 - ✅ Added phone number field to user signup
@@ -318,8 +362,8 @@ This project is private and proprietary.
 
 ---
 
-**Last Updated**: March 14, 2026
-**Version**: 2.0.0
+**Last Updated**: March 15, 2026
+**Version**: 2.1.0
 
 - Edit files directly within the Codespace and commit and push your changes once you're done.
 

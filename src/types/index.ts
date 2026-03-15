@@ -27,10 +27,12 @@ export interface Order {
   user_name: string;
   email: string;
   items: OrderItem[];
+  order_items?: OrderItem[];
   total_amount: number;
   status: "Pending" | "Approved" | "Rejected";
   created_at: string;
   points_earned: number;
+  is_redemption?: boolean;
 }
 
 export interface OrderItem {

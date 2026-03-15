@@ -13,6 +13,7 @@ import OffersPage from "./pages/OffersPage";
 import ContactPage from "./pages/ContactPage";
 import AdminDashboard from "./pages/AdminDashboard";
 import ConfirmEmailPage from "./pages/ConfirmEmailPage";
+import RedeemPage from "./pages/RedeemPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,6 +33,7 @@ const App = () => (
               <Route path="/auth/confirm" element={<ConfirmEmailPage />} />
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/offers" element={<OffersPage />} />
+              <Route path="/redeem" element={<RedeemPage />} />
               <Route path="/contact" element={<ContactPage />} />
               <Route path="/admin-dashboard" element={<AdminDashboard />} />
               <Route path="*" element={<NotFound />} />

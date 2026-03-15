@@ -15,6 +15,7 @@ interface AuthContextType {
   adminLogin: (email: string, password: string) => Promise<boolean>;
   logout: () => Promise<void>;
   placeOrder: (order: { items: OrderItem[]; total_amount: number }) => Promise<void>;
+  redeemPoints: (itemId: string, itemName: string, points: number) => Promise<void>;
   approveOrder: (orderId: string) => Promise<void>;
   rejectOrder: (orderId: string) => Promise<void>;
   adjustPoints: (userId: string, adjustment: number) => Promise<void>;
@@ -409,6 +410,45 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     await fetchOrders();
   };
 
+  const redeemPoints = async (itemId: string, itemName: string, pointsToRedeem: number) => {
+    if (!user) return;
+
+    // Check if user has enough points (client-side check only)
+    if ((user.reward_points || 0) < pointsToRedeem) {
+      toast.error("Insufficient points");
+      return;
+    }
+
+    try {
+      // Call server-side RPC function that handles everything atomically
+      // This ensures the database update is guaranteed to work
+      const { data: orderId, error } = await supabase.rpc("redeem_points", {
+        item_id: itemId,
+        item_name: itemName,
+        points_to_redeem: pointsToRedeem,
+      });
+
+      if (error) {
+        toast.error(error.message || "Failed to redeem points");
+        return;
+      }
+
+      if (!orderId) {
+        toast.error("Failed to create redemption order");
+        return;
+      }
+
+      // Update user object with new points
+      setUser(prev => prev ? { ...prev, reward_points: (prev.reward_points || 0) - pointsToRedeem } : prev);
+
+      toast.success("Redemption request sent to admin for approval!");
+      await fetchOrders();
+    } catch (err) {
+      console.error("Redeem error:", err);
+      toast.error("Redemption failed. Please try again.");
+    }
+  };
+
   const approveOrder = async (orderId: string) => {
     const { error } = await supabase.rpc("approve_order", { order_id: orderId });
     if (error) { toast.error("Failed to approve: " + error.message); return; }
@@ -437,7 +477,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, isAdmin, orders, loading, login, signup, adminLogin, logout, placeOrder, approveOrder, rejectOrder, adjustPoints, allUsers, refreshOrders, refreshUsers }}>
+    <AuthContext.Provider value={{ user, isAdmin, orders, loading, login, signup, adminLogin, logout, placeOrder, redeemPoints, approveOrder, rejectOrder, adjustPoints, allUsers, refreshOrders, refreshUsers }}>
       {children}
     </AuthContext.Provider>
   );
