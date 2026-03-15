@@ -52,6 +52,12 @@ const AdminDashboard = () => {
   const [selectedUserId, setSelectedUserId] = useState("");
   const [pointsAdjust, setPointsAdjust] = useState("");
 
+  // Orders filter
+  const [orderFilter, setOrderFilter] = useState<"all" | "pending" | "approved">("all");
+
+  // Users search
+  const [userSearch, setUserSearch] = useState("");
+
   // Analytics
   const analytics = useMemo(() => {
     if (!orders || orders.length === 0) {
@@ -314,15 +320,26 @@ const AdminDashboard = () => {
 
           {/* ORDERS */}
           <TabsContent value="orders" className="space-y-3">
-            {orders.length === 0 ? <p className="text-center text-muted-foreground py-12">No orders yet</p> : orders.map(order => (
-              <div key={order.id} className="bg-card rounded-xl border p-4">
+            <div className="flex gap-2 mb-3 flex-wrap">
+              <Button size="sm" variant={orderFilter === "all" ? "default" : "outline"} className="h-7 text-xs" onClick={() => setOrderFilter("all")}>All Orders ({orders.length})</Button>
+              <Button size="sm" variant={orderFilter === "pending" ? "default" : "outline"} className="h-7 text-xs" onClick={() => setOrderFilter("pending")}>Pending ({orders.filter(o => o.status === "Pending").length})</Button>
+              <Button size="sm" variant={orderFilter === "approved" ? "default" : "outline"} className="h-7 text-xs" onClick={() => setOrderFilter("approved")}>Approved ({orders.filter(o => o.status === "Approved").length})</Button>
+            </div>
+            {orders.length === 0 ? <p className="text-center text-muted-foreground py-12">No orders yet</p> : (orders.filter(order => orderFilter === "all" ? true : orderFilter === "pending" ? order.status === "Pending" : order.status === "Approved")).map(order => (
+              <div key={order.id} className={`rounded-xl border p-4 ${(order as any).is_redemption ? "bg-yellow-50/50 border-yellow-200 dark:bg-yellow-950/20 dark:border-yellow-900" : "bg-card"}`}>
                 <div className="flex items-start justify-between mb-2 gap-2">
-                  <div className="min-w-0"><p className="font-semibold text-sm truncate">{order.user_name}</p><p className="text-[10px] text-muted-foreground truncate">{order.email} • {new Date(order.created_at).toLocaleString("en-IN")}</p></div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="font-semibold text-sm truncate">{order.user_name}</p>
+                      {(order as any).is_redemption && <Badge variant="secondary" className="text-[9px] bg-yellow-200 text-yellow-900">Redemption</Badge>}
+                    </div>
+                    <p className="text-[10px] text-muted-foreground truncate">{order.email} • {new Date(order.created_at).toLocaleString("en-IN")}</p>
+                  </div>
                   <Badge variant={order.status === "Approved" ? "default" : order.status === "Rejected" ? "destructive" : "secondary"} className="text-[10px] flex-shrink-0">{order.status}</Badge>
                 </div>
-                <div className="space-y-0.5 mb-2">{(order.order_items || []).map((item, i) => <div key={i} className="flex justify-between text-xs text-muted-foreground"><span>{item.name} × {item.quantity}</span><span>₹{item.price * item.quantity}</span></div>)}</div>
+                <div className="space-y-0.5 mb-2">{(order.order_items || []).map((item, i) => <div key={i} className="flex justify-between text-xs text-muted-foreground"><span>{item.name} × {item.quantity}</span><span>{(order as any).is_redemption ? "Redeem" : `₹${item.price * item.quantity}`}</span></div>)}</div>
                 <div className="border-t pt-2 flex items-center justify-between gap-2">
-                  <span className="font-bold text-sm">₹{order.total_amount}</span>
+                  <span className="font-bold text-sm">{(order as any).is_redemption ? `${Math.abs(order.points_earned)} pts` : `₹${order.total_amount}`}</span>
                   {order.status === "Pending" && (
                     <div className="flex gap-1.5">
                       <Button size="sm" onClick={() => approveOrder(order.id)} className="gap-1 h-7 text-xs"><Check className="h-3 w-3" /> Approve</Button>
@@ -337,10 +354,18 @@ const AdminDashboard = () => {
 
           {/* USERS */}
           <TabsContent value="users" className="space-y-3">
-            {allUsers.length === 0 ? <p className="text-center text-muted-foreground py-12">No users yet</p> : (
-              <div className="space-y-2">
-                <p className="text-xs text-muted-foreground">{allUsers.length} users</p>
-                {allUsers.map((u) => {
+            <Input placeholder="Search by name or phone..." value={userSearch} onChange={(e) => setUserSearch(e.target.value)} className="h-8 text-xs" />
+            {allUsers.length === 0 ? <p className="text-center text-muted-foreground py-12">No users yet</p> : (() => {
+              const filteredUsers = allUsers.filter(u => {
+                const search = userSearch.toLowerCase();
+                return u.name.toLowerCase().includes(search) || (u.phone_number && u.phone_number.includes(search));
+              });
+              return filteredUsers.length === 0 ? (
+                <p className="text-center text-muted-foreground py-12">No matching users found</p>
+              ) : (
+                <div className="space-y-2">
+                  <p className="text-xs text-muted-foreground">{filteredUsers.length} of {allUsers.length} users</p>
+                  {filteredUsers.map((u) => {
                   const userOrders = orders.filter(o => o.user_id === u.id);
                   const totalSpent = userOrders.filter(o => o.status === "Approved").reduce((s, o) => s + o.total_amount, 0);
                   return (
@@ -357,8 +382,9 @@ const AdminDashboard = () => {
                     </div>
                   );
                 })}
-              </div>
-            )}
+                </div>
+              );
+            })()}
           </TabsContent>
 
           {/* MENU */}
