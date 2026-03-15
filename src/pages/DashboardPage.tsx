@@ -27,9 +27,40 @@ const DashboardPage = () => {
     <div className="min-h-screen bg-background">
       <Navbar />
       <div className="px-3 md:px-0 md:max-w-2xl md:mx-auto py-4 md:py-8">
-        {/* Profile */}
+        {/* Profile - Responsive Layout */}
         <div className="bg-card rounded-xl border p-4 mb-4">
-          <div className="flex items-center gap-3">
+          {/* Mobile: Stacked Layout */}
+          <div className="md:hidden space-y-3">
+            <div className="flex items-start gap-3">
+              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-1">
+                <User className="h-6 w-6 text-primary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h1 className="font-display text-lg font-bold break-words">{user.name}</h1>
+                <p className="text-muted-foreground text-xs break-all">{user.email}</p>
+                {user.phone_number && <p className="text-muted-foreground text-xs">{user.phone_number}</p>}
+              </div>
+            </div>
+            <div className="flex items-center gap-2 bg-secondary/10 px-3 py-2 rounded-lg w-fit">
+              <Award className="h-5 w-5 text-secondary flex-shrink-0" />
+              <div>
+                <p className="text-xs text-muted-foreground font-medium">Your Points</p>
+                <p className="font-bold text-lg">{user.reward_points}</p>
+              </div>
+            </div>
+            <Button
+              onClick={handleLogout}
+              variant="outline"
+              size="sm"
+              className="w-full text-destructive border-destructive/30 hover:bg-destructive/5"
+            >
+              <LogOut className="h-4 w-4 mr-2" />
+              Logout
+            </Button>
+          </div>
+
+          {/* Desktop: Horizontal Layout */}
+          <div className="hidden md:flex items-center gap-3">
             <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
               <User className="h-5 w-5 text-primary" />
             </div>
@@ -72,7 +103,7 @@ const DashboardPage = () => {
           <div className="space-y-2">
             {userOrders.map(order => (
               <div key={order.id} className="bg-card rounded-xl border p-4">
-                <div className="flex items-center justify-between mb-2 gap-2">
+                <div className="flex items-center justify-between mb-2 gap-2 flex-wrap">
                   <p className="text-[10px] text-muted-foreground">
                     {new Date(order.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
                   </p>
